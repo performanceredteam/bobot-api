@@ -1,0 +1,890 @@
+{
+	"info": {
+		"_postman_id": "0060835c-f75e-4b9c-8dd8-31897a3bc7bd",
+		"name": "Bobot-API",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "LogIn",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"let jsonData= pm.response.json();",
+							"pm.environment.set(\"Token\", jsonData.token);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [],
+				"body": {
+					"mode": "raw",
+					"raw": "/*\n{\n    \"username\":\"cquiroz\",\n    \"password\":\"ca8610(qv)\"\n}\n*/\n{\n    \"username\":\"jbeltran\",\n    \"password\":\"prueba123\"\n}\n",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:{{Port}}/api-token-auth/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "{{Port}}",
+					"path": [
+						"api-token-auth",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "RegitroPropietarioApartamento",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Token {{Token}}",
+						"type": "default"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"ph_propietario\": \"Juan David Martinez\",\n    \"ph_telefono\": \"304-588-7845\",\n    \"ph_mail\" : \"jmartinez@correo.com\",\n    \"ph_torre\" : 16,\n    \"ph_apartamento\" : 203\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/bobot-api/apartamentoph-registro/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"bobot-api",
+						"apartamentoph-registro",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "BuscarApartamento",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"let jsonData= pm.response.json();",
+							"pm.environment.set(\"PorpietarioId\", jsonData.Propietario.id);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Token {{Token}}",
+						"type": "default"
+					}
+				],
+				"url": {
+					"raw": "http://127.0.0.1:{{Port}}/bobot-api/apartamentos-buscar/?torre=5&apto=102",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "{{Port}}",
+					"path": [
+						"bobot-api",
+						"apartamentos-buscar",
+						""
+					],
+					"query": [
+						{
+							"key": "torre",
+							"value": "5"
+						},
+						{
+							"key": "apto",
+							"value": "102"
+						},
+						{
+							"key": "prop",
+							"value": "Juan David Martinez",
+							"disabled": true
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "ListadoApartamentosyTorres",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"let jsonData= pm.response.json();",
+							"pm.environment.set(\"Torre\", jsonData.Torres.tr_torre);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Token {{Token}}",
+						"type": "default"
+					}
+				],
+				"url": {
+					"raw": "http://127.0.0.1:{{Port}}/bobot-api/apartamentoscasas-buscar/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "{{Port}}",
+					"path": [
+						"bobot-api",
+						"apartamentoscasas-buscar",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "BuscarPlacaVisita",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"let jsonData= pm.response.json();",
+							"pm.environment.set(\"Placa\", jsonData.Placa.pl_placa);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Token {{Token}}",
+						"type": "default"
+					}
+				],
+				"url": {
+					"raw": "http://127.0.0.1:{{Port}}/bobot-api/placavisita-buscar/?placa=KZL-489",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "{{Port}}",
+					"path": [
+						"bobot-api",
+						"placavisita-buscar",
+						""
+					],
+					"query": [
+						{
+							"key": "placa",
+							"value": "KZL-489"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "RegistroPlacaVisita",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"let jsonData= pm.response.json();",
+							"pm.environment.set(\"Placa\", jsonData.Placa.pl_placa);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Token {{Token}}",
+						"type": "default"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"pl_placa\" : \"KZL-489\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:{{Port}}/bobot-api/placavisita-registro/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "{{Port}}",
+					"path": [
+						"bobot-api",
+						"placavisita-registro",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "RegistroParqueaderoVisita",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Token {{Token}}",
+						"type": "default"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"pk_slot\" : \"P4\",\n    \"pk_status\" : false\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/bobot-api/parqueaderovisita-registro/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"bobot-api",
+						"parqueaderovisita-registro",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "DisponibilidadParqueaderoVisita",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"let jsonData= pm.response.json();",
+							"pm.environment.set(\"Parqueadero\", jsonData.ParqueaderosDisponibles[0].pk_slot);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Token {{Token}}",
+						"type": "default"
+					}
+				],
+				"url": {
+					"raw": "http://127.0.0.1:{{Port}}/bobot-api/parqueaderovisita-disponible/?disponible=True&tipovehiculo={{TipoVehiculoDesc}}",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "{{Port}}",
+					"path": [
+						"bobot-api",
+						"parqueaderovisita-disponible",
+						""
+					],
+					"query": [
+						{
+							"key": "disponible",
+							"value": "True"
+						},
+						{
+							"key": "tipovehiculo",
+							"value": "{{TipoVehiculoDesc}}"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "ActualizarDisponibilidadParqueaderoVisita",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Token {{Token}}",
+						"type": "default"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"pk_slot\": \"P2\",\n    \"pk_status\": true\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:8000/bobot-api/parqueaderovisita-actdisponible/P2/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "8000",
+					"path": [
+						"bobot-api",
+						"parqueaderovisita-actdisponible",
+						"P2",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "RegistroVehiculoVisitaIngreso",
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Token {{Token}}",
+						"type": "default"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"vi_fecha_hora_ingreso\" :\"2023-05-01 19:51:00\",\n    \"pl_placa\" : \"{{Placa}}\",\n    \"vh_tipo\" : {{TipoVehiculo}},\n    \"pk_slot\" : \"{{Parqueadero}}\",\n    \"pk_status\" : false\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:{{Port}}/bobot-api/vehiculovisita-ingreso/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "{{Port}}",
+					"path": [
+						"bobot-api",
+						"vehiculovisita-ingreso",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "ResumenVehiculoVisitaInfo",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"let jsonData= pm.response.json();",
+							"pm.environment.set(\"IdRegistro\", jsonData.InfoIngreso.id);",
+							"pm.environment.set(\"ParqueaderoSlot\", jsonData.InfoIngreso.pk_slot);",
+							"pm.environment.set(\"IdRegistroVisitante\", jsonData.RegistroVisitante.id);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Token {{Token}}",
+						"type": "default"
+					}
+				],
+				"url": {
+					"raw": "http://127.0.0.1:{{Port}}/bobot-api/vehiculovisita-info/?placa=RIK-903&status=0",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "{{Port}}",
+					"path": [
+						"bobot-api",
+						"vehiculovisita-info",
+						""
+					],
+					"query": [
+						{
+							"key": "placa",
+							"value": "RIK-903"
+						},
+						{
+							"key": "status",
+							"value": "0"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "RegistroVehiculoVisitaSalida",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Token {{Token}}",
+						"type": "default"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"vi_fecha_hora_salida\" :\"{{FechaHoraSalida}}\",\n    \"pl_placa\" : \"{{Placa}}\",\n    \"pk_slot\" : \"{{ParqueaderoSlot}}\",\n    \"vi_visitante\" : {{IdRegistroVisitante}},\n    \"fa_monto\" : \"{{MontoPagar}}\",\n    \"fa_tiempo\": {{DuracionHoraFrac}},\n    \"ph_propietario\" : {{PorpietarioId}},\n    \"pk_status\" : true,\n    \"vi_status\" : false\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:{{Port}}/bobot-api/vehiculovisita-salida/{{IdRegistro}}/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "{{Port}}",
+					"path": [
+						"bobot-api",
+						"vehiculovisita-salida",
+						"{{IdRegistro}}",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "RegistroPersonaVisita",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"let jsonData= pm.response.json();",
+							"pm.environment.set(\"CedulaVisita\", jsonData.Visitante.vd_cedula);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "POST",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Token {{Token}}",
+						"type": "default"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"vd_nombre\": \"Jose Linares\",\n    \"vd_cedula\" : \"5458989\",\n    \"vd_telefono\" : \"320-892-7415\",\n    \"ph_propietario\" : {{PorpietarioId}},\n    \"pl_placa\" : \"{{Placa}}\",\n    \"pk_slot\" : \"{{Parqueadero}}\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:{{Port}}/bobot-api/personavisita-registro/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "{{Port}}",
+					"path": [
+						"bobot-api",
+						"personavisita-registro",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "BuscarCedulaVisita",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"let jsonData= pm.response.json();",
+							"pm.environment.set(\"CedulaVisita\", jsonData.CedulaVisitante.vd_cedula);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Token {{Token}}",
+						"type": "default"
+					}
+				],
+				"url": {
+					"raw": "http://127.0.0.1:{{Port}}/bobot-api/cedulavisita-buscar/?cedula=552111",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "{{Port}}",
+					"path": [
+						"bobot-api",
+						"cedulavisita-buscar",
+						""
+					],
+					"query": [
+						{
+							"key": "cedula",
+							"value": "552111"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "BuscarTipoVehiculo",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"let jsonData= pm.response.json();",
+							"pm.environment.set(\"TipoVehiculo\", jsonData.TipoVehiculo[1].vh_tipo);",
+							"pm.environment.set(\"TipoVehiculoDesc\", jsonData.TipoVehiculo[1].vh_desc);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Token {{Token}}",
+						"type": "default"
+					}
+				],
+				"url": {
+					"raw": "http://127.0.0.1:{{Port}}/bobot-api/tipovehiculo-buscar/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "{{Port}}",
+					"path": [
+						"bobot-api",
+						"tipovehiculo-buscar",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "CalulaTiempoParqueo",
+			"event": [
+				{
+					"listen": "test",
+					"script": {
+						"exec": [
+							"let jsonData= pm.response.json();",
+							"pm.environment.set(\"FechaHoraSalida\", jsonData.FechaHoraSalida);",
+							"pm.environment.set(\"DuracionHoraFrac\", jsonData.DuracionHoraFrac);",
+							"pm.environment.set(\"MontoPagar\", jsonData.MontoPagar);"
+						],
+						"type": "text/javascript"
+					}
+				}
+			],
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Token {{Token}}",
+						"type": "default"
+					}
+				],
+				"url": {
+					"raw": "http://127.0.0.1:{{Port}}/bobot-api/tiempo-calculo/?placa=RIK-903&hora=2023-05-09T20:38:00&cobro=2",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "{{Port}}",
+					"path": [
+						"bobot-api",
+						"tiempo-calculo",
+						""
+					],
+					"query": [
+						{
+							"key": "placa",
+							"value": "RIK-903"
+						},
+						{
+							"key": "hora",
+							"value": "2023-05-09T20:38:00"
+						},
+						{
+							"key": "cobro",
+							"value": "2"
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "RegistroPersonaExiste",
+			"request": {
+				"method": "PUT",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Token {{Token}}",
+						"type": "default"
+					}
+				],
+				"body": {
+					"mode": "raw",
+					"raw": "{\n    \"vd_cedula\" : \"{{CedulaVisita}}\",\n    \"ph_propietario\" : {{PorpietarioId}},\n    \"pl_placa\" : \"{{Placa}}\",\n    \"pk_slot\" : \"{{Parqueadero}}\"\n}",
+					"options": {
+						"raw": {
+							"language": "json"
+						}
+					}
+				},
+				"url": {
+					"raw": "http://127.0.0.1:{{Port}}/bobot-api/cedulavisita-registro/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "{{Port}}",
+					"path": [
+						"bobot-api",
+						"cedulavisita-registro",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "DashboarVehiculosParqTabla",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Token {{Token}}",
+						"type": "default"
+					}
+				],
+				"url": {
+					"raw": "http://127.0.0.1:{{Port}}/bobot-api/vehiculosparq-dh/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "{{Port}}",
+					"path": [
+						"bobot-api",
+						"vehiculosparq-dh",
+						""
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "DashboardTotalVechiculosParqueadosCount",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Token {{Token}}",
+						"type": "default"
+					}
+				],
+				"url": {
+					"raw": "http://127.0.0.1:{{Port}}/bobot-api/totvechiculos-dh/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "{{Port}}",
+					"path": [
+						"bobot-api",
+						"totvechiculos-dh",
+						""
+					],
+					"query": [
+						{
+							"key": "tipovehiculo",
+							"value": "1",
+							"disabled": true
+						}
+					]
+				}
+			},
+			"response": []
+		},
+		{
+			"name": "DashboardTotParqueaderosLibres/",
+			"request": {
+				"method": "GET",
+				"header": [
+					{
+						"key": "Authorization",
+						"value": "Token {{Token}}",
+						"type": "default"
+					}
+				],
+				"url": {
+					"raw": "http://127.0.0.1:{{Port}}/bobot-api/totparqueaderos-dh/",
+					"protocol": "http",
+					"host": [
+						"127",
+						"0",
+						"0",
+						"1"
+					],
+					"port": "{{Port}}",
+					"path": [
+						"bobot-api",
+						"totparqueaderos-dh",
+						""
+					]
+				}
+			},
+			"response": []
+		}
+	]
+}
