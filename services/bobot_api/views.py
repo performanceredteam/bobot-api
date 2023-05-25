@@ -19,8 +19,30 @@ from .serializer import ApartamentoPhSerializer, \
 
 from rest_framework.permissions import DjangoModelPermissions
 from datetime import *
+
+from django.core.mail import EmailMessage
+from django.conf import settings
+from django.template.loader import get_template
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
 # Create your views here.
 
+def SendEmail(asunto, mensaje, emails):
+    #send_mail(subjet=asunto, menssage=mensaje, from_email=settings.EMAIL_HOST_USER, recipient_list=emails)
+    template = settings.TEMPLATES[0]['DIRS']
+    message = get_template(template[0]+"/email.html").render({'datos':mensaje})
+
+    
+    mail = EmailMessage(
+        subject=asunto,
+        body=message,
+        from_email=settings.EMAIL_HOST_USER,
+        to=[emails, settings.EMAIL_HOST_USER],
+    )
+    mail.content_subtype = "html"
+    return mail.send()
+    
+    
 
 class ApartamentoPhView(APIView):
     authentication_classes=[TokenAuthentication,]
@@ -315,6 +337,19 @@ class IngresoSalidaVisitaVehiculoView(APIView):
             return Response({'Message':'Error al Buscar Placa'}, status=status.HTTP_409_CONFLICT)
         
         if option == 1:
+            asunto="Ingreso de Visitante al Conjunto la Sierra PH - Madrid"
+            #"Registro de Ingreso </br> Placa: "+serializer.data['pl_placa']+"Fecha y Hora Ingreso: "+serializer_info.data['vi_fecha_hora_ingreso']+ \
+            #    " Parqueadero: "+serializer_info.data['pk_slot']+" Vistante: "+serializer_visitante.data['vd_nombre']+" Cédula: "+str(serializer_visitante.data['vd_cedula'])+ \
+            #    " Teléfono: "+serializer_visitante.data['vd_telefono']+" Residente: "+serializer_prop.data['ph_propietario']+" Teléfono: "+serializer_prop.data['ph_telefono']+ \
+            #    " Torre: "+str(serializer_prop.data["ph_torre"])+" Apartamento/Casa: "+str(serializer_prop.data["ph_apartamento"])
+            mensaje="Registro de Ingreso Placa: "+serializer.data['pl_placa']+" Fecha y Hora Ingreso: "+serializer_info.data['vi_fecha_hora_ingreso']+ \
+                " Parqueadero: "+serializer_info.data['pk_slot']+" Vistante: "+serializer_visitante.data['vd_nombre']+" Cédula: "+str(serializer_visitante.data['vd_cedula'])+ \
+                " Teléfono: "+serializer_visitante.data['vd_telefono']+" Residente: "+serializer_prop.data['ph_propietario']+" Teléfono: "+serializer_prop.data['ph_telefono']+ \
+                " Torre: "+str(serializer_prop.data["ph_torre"])+" Apartamento/Casa: "+str(serializer_prop.data["ph_apartamento"])
+            print(mensaje)
+            emails = serializer_prop.data["ph_mail"]
+            SendEmail(asunto,mensaje,emails)
+            
             return Response({'Message':'Success','InfoPlacaVisitante':serializer.data, 'InfoIngreso':serializer_info.data, 'VisitanteInfo':serializer_visitante.data, \
             'RegistroVisitante':serializer_ingresovisita.data, 'PropietarioVisitado':serializer_prop.data})
         elif option == 2:
@@ -336,6 +371,22 @@ class IngresoSalidaVisitaVehiculoView(APIView):
                 'vi_status' : request.data.get('vi_status')
             }
         
+        
+        intance = PlacaVehiculoVisita.objects.get(pl_placa__exact=data['pl_placa'])
+        serializerinstance = PlacaVehiculoVisitaSerializer(intance)
+
+        info = IngresoSalidaVehiculoVisita.objects.get(pl_placa=data['pl_placa'], vi_status=True)
+        serializer_info = IngresoSalidaSerializer(info)
+            
+        ingresovisita = IngresoDeVisita.objects.get(pl_placa=data['pl_placa'], vi_status=True)
+        serializer_ingresovisita = IngresoDeVisitaSerializer(ingresovisita)
+            
+        visitante = VisitanteDatos.objects.get(vd_cedula=serializer_ingresovisita.data['vd_cedula'])
+        serializer_visitante = VisitanteDatosSerializer(visitante)
+                            
+        prop_intance = ApartamentoPh.objects.get(id=serializer_ingresovisita.data['ph_propietario'])
+        serializer_prop = ApartamentoPhSerializer(prop_intance)  
+        #-------------------------------------------------------------------------------------------    
         salida = IngresoSalidaVehiculoVisita.objects.get(id=pk)
         serializer = SalidaVisitaSerializer(salida, data=data, many=False)
         
@@ -352,9 +403,65 @@ class IngresoSalidaVisitaVehiculoView(APIView):
             serializerpk.save()
             serializervisita.save()
             facturaserializer.save()
+            
+            
+            asunto="Salida de Visitante del Conjunto la Sierra PH - Madrid"
+            mensaje="Registro de Salida Placa: "+serializerinstance.data['pl_placa']+"\n Fecha y Hora Ingreso: "+serializer_info.data['vi_fecha_hora_ingreso']+" Fecha y Hora Salida: "+data['vi_fecha_hora_salida']+"\r\n" + \
+                " Monto: $"+data['fa_monto']+" Tiempo: "+str(data['fa_tiempo'])+" horas, Parqueadero: "+serializer_info.data['pk_slot']+"\r\n Visitante: "+serializer_visitante.data['vd_nombre']+" Cédula: "+str(serializer_visitante.data['vd_cedula'])+ \
+                " Teléfono: "+serializer_visitante.data['vd_telefono']+"\r\n Residente: "+serializer_prop.data['ph_propietario']+" Teléfono: "+serializer_prop.data['ph_telefono']+"\r\n"+ \
+                " Torre: "+str(serializer_prop.data["ph_torre"])+" Apartamento/Casa: "+str(serializer_prop.data["ph_apartamento"])
+            emails = serializer_prop.data["ph_mail"]
+            SendEmail(asunto,mensaje,emails)
+            
+            
             return Response({'Message' : 'Success', "Salida" :serializer.data, 'Parqueadero': serializerpk.data, 'InfoVisitante': serializervisita.data, 'Facturacion' : facturaserializer.data}, status=status.HTTP_200_OK)
         
         return Response({'Message' : 'Error', "Detail": serializervisita.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class ResumenVisitaVehiculoView(APIView):
+    authentication_classes=[TokenAuthentication,]
+    permission_classes = [DjangoModelPermissions]
+     
+    queryset = IngresoSalidaVehiculoVisita.objects.all()
+    serializer_class = IngresoVisitaSerializer
+    
+     #Consultar Info de Placa 
+    def get(self, request, *args, **kwargs):
+        try:
+            placa = request.query_params.get("placa", None)
+            status = request.query_params.get("status", None)
+            intance = None
+            serializer_info= None
+            serializer= None
+            visitante = None
+            serializer_visitante = None
+                       
+            intance = PlacaVehiculoVisita.objects.get(pl_placa__exact=placa)
+            serializer = PlacaVehiculoVisitaSerializer(intance)
+
+            info = IngresoSalidaVehiculoVisita.objects.get(pl_placa=placa, vi_status=status)
+            serializer_info = IngresoSalidaSerializer(info)
+                
+            ingresovisita = IngresoDeVisita.objects.get(pl_placa=placa, vi_status=status)
+            serializer_ingresovisita = IngresoDeVisitaSerializer(ingresovisita)
+                
+            visitante = VisitanteDatos.objects.get(vd_cedula=serializer_ingresovisita.data['vd_cedula'])
+            serializer_visitante = VisitanteDatosSerializer(visitante)
+                             
+            prop_intance = ApartamentoPh.objects.get(id=serializer_ingresovisita.data['ph_propietario'])
+            serializer_prop = ApartamentoPhSerializer(prop_intance)    
+           
+              
+        except Exception as e:
+            print(e)
+        
+        if intance is None:
+            return Response({'Message':'Error al Buscar Placa'}, status=status.HTTP_409_CONFLICT)
+        
+            
+        return Response({'Message':'Success','InfoPlacaVisitante':serializer.data, 'InfoIngreso':serializer_info.data, 'VisitanteInfo':serializer_visitante.data, \
+            'RegistroVisitante':serializer_ingresovisita.data, 'PropietarioVisitado':serializer_prop.data})
 
 class VisitanteDatosView(APIView):
     authentication_classes=[TokenAuthentication,]
@@ -389,7 +496,7 @@ class VisitanteDatosView(APIView):
                 'vd_telefono': request.data.get('vd_telefono'),
                 'ph_propietario': request.data.get('ph_propietario'),
                 'pl_placa': request.data.get('pl_placa'),
-                'pk_slot': request.data.get('pk_slot')
+                'pk_slot': request.data.get('pk_slot'),
             }
 
             serializer = VisitanteDatosSerializer(data=data)
@@ -432,8 +539,6 @@ class CalculoTiempoMontoView(APIView):
     queryset = IngresoSalidaVehiculoVisita.objects.all()
     serializer_class = IngresoVisitaSerializer
     
-    
-    
     def get(self, request, *args, **kwargs):
         try: 
             placa = request.query_params.get("placa", None)
@@ -445,7 +550,9 @@ class CalculoTiempoMontoView(APIView):
             ingreso = serializer_info.data['vi_fecha_hora_ingreso']
         
             fecha_hora_ingreso = datetime.strptime(serializer_info.data['vi_fecha_hora_ingreso'], '%Y-%m-%dT%H:%M:%S')
+            #print(fecha_hora_ingreso)
             fecha_hora_salida = datetime.strptime(hora, '%Y-%m-%dT%H:%M:%S')
+            #print(fecha_hora_salida)
             time_calculado = (fecha_hora_salida - fecha_hora_ingreso)/60
 
             #print(str(time_calculado))
@@ -453,7 +560,8 @@ class CalculoTiempoMontoView(APIView):
             tiempo = str(time_calculado).split(":")
             #print("split", tiempo)
             horas = (int(tiempo[1])*60)
-            minutos = int(tiempo[2])
+            minutos = int(float(tiempo[2]))
+            #print(minutos)
             minutos_totales = (horas+minutos)
             #print("horas",((horas+minutos)/60))
             
@@ -482,13 +590,15 @@ class CalculoTiempoMontoView(APIView):
             
             #Cobro Hora o Fraccion  
             elif config_cobro == 2:
+                #print("entra en 2")
                 hora = (int(tiempo[1]))
                 if hora < (tiempo_libre/60): #Hora(s) Gratis
                     cobro = "0.00"
-                    horas_totales = minutos
+                    horas_totales = str(hora)+":"+str(minutos)
                     hora_gratis = (tiempo_libre/60)
                 elif hora >= 1 or hora >= (tiempo_libre/60):
                     #print(hora)
+                    
                     plushora = 0
                     if minutos > 0:
                         sumhora = (60 - minutos)
@@ -496,14 +606,16 @@ class CalculoTiempoMontoView(APIView):
                         #print(sumhora)
                         plushora = (sumhora + minutos) / 60 
                         #print("plushora",plushora)
-                    horas_totales = int((hora + plushora))  
+                    horas_totales = str(int((hora + plushora)))
+                    horas_totales_cobro = int((hora + plushora))
                     hora_gratis = (tiempo_libre/60)
                     #print(horas_totales)
-                    cobro =  format( (horas_totales - hora_gratis) * costo_hora ,".2f") #Menos Hora(s) Gratis
+                    cobro =  format( (horas_totales_cobro - hora_gratis) * costo_hora ,".2f") #Menos Hora(s) Gratis
             
 
                 return Response({'FechaHoraIngreso': ingreso, 'FechaHoraSalida':fecha_hora_salida,  'DuracionHoraFrac':horas_totales, 'MontoPagar': cobro, 'HoraGratis': int(hora_gratis) })
-        except Exception:
+        except Exception as e:
+            print(e)
             return(Response({'Message':'No Existe la Placa'}, status=status.HTTP_400_BAD_REQUEST))
 
 class ReporteParqueaderosDhView(APIView):
@@ -600,3 +712,25 @@ class ReporteParqueaderosLibresDhView(APIView):
             print(e)
             
         return Response({'Message':'Success','ParquedaroCarrosDisponibles':len(parqueaderos_libres_carro), 'ParquedaroMotosDisponibles': len(parqueaderos_libres_moto)})
+    
+    
+    
+#Fecha y Hora
+import requests
+class GetDateTimeView(APIView):
+    authentication_classes=[TokenAuthentication,]
+    permission_classes = [DjangoModelPermissions]
+    
+    queryset = IngresoSalidaVehiculoVisita.objects.all()
+    serializer_class = IngresoVisitaSerializer
+    
+    def get(self, request, *args, **kwargs):
+        response = requests.get("http://worldtimeapi.org/api/timezone/America/Bogota")
+        data = response.json()
+        
+        fecha = data['datetime'][0:10]
+        hora = data['datetime'][11:19]
+        fecha_hora_f1 = fecha+" "+hora
+        fecha_hora_f2 = data['datetime'][0:19]
+        
+        return Response({'FechaHoraIngreso' : fecha_hora_f1, 'FechaHoraSalida' : fecha_hora_f2})
