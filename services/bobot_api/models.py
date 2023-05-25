@@ -101,7 +101,7 @@ class Config(models.Model):
 class Facturacion(models.Model):
     vi_fecha_hora_salida = models.DateTimeField(format('%Y-%m-%dT%H:%M:%s'), auto_now=False)
     fa_monto = models.DecimalField(max_digits=10, decimal_places=2)
-    fa_tiempo = models.IntegerField()
+    fa_tiempo = models.CharField(max_length=15)
     ph_propietario = models.ForeignKey(ApartamentoPh, on_delete=models.CASCADE)
     vi_visitante = models.ForeignKey(IngresoDeVisita, on_delete=models.CASCADE)
     
