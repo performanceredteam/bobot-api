@@ -2,7 +2,7 @@
 from django.urls import path
 from .views import ApartamentoPhView, TorresApastamentosView, PlacasVheiculosVisitaView, ParqueaderoVisitaView, \
     IngresoSalidaVisitaVehiculoView, VisitanteDatosView, CalculoTiempoMontoView, TipoVehiculoView, ReporteParqueaderosDhView, \
-    ReporteCarrosParqueadosDhView, ReporteParqueaderosLibresDhView, GetDateTimeView, ResumenVisitaVehiculoView
+    ReporteCarrosParqueadosDhView, ReporteParqueaderosLibresDhView, GetDateTimeView, ResumenVisitaVehiculoView, ReporteIngresosView
 
 urlpatterns = [
     path('apartamentoph-registro/', ApartamentoPhView.as_view(), name='apartamentoph_registro'),
@@ -26,4 +26,5 @@ urlpatterns = [
     path('totparqueaderos-dh/', ReporteParqueaderosLibresDhView.as_view(), name='totparqueaderos-dh'),
     path('datetime-info/', GetDateTimeView.as_view(), name='datetime-info'),
     path('resumenvisitante-info/', ResumenVisitaVehiculoView.as_view(), name='resumenvisitante-info'),
+    path('reporteingresos-rep/', ReporteIngresosView.as_view(), name='reporteingresos-rep'),
 ]
