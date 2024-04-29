@@ -14,7 +14,7 @@ from .serializer import ApartamentoPhSerializer, \
     PlacaVehiculoVisitaSerializer, ParqueaderosVisitaSerializer, \
     IngresoVisitaSerializer, SalidaVisitaSerializer, IngresoSalidaSerializer, \
     VisitanteDatosSerializer, IngresoDeVisitaSerializer, SalidaDeVisitaSerializer, \
-    TipoVehiculoSerializer, ConfigSerializer, FacturacionSerializer
+    TipoVehiculoSerializer, ConfigSerializer, FacturacionSerializer, IngresoDeVisitaReporteSerializer
 
 
 from rest_framework.permissions import DjangoModelPermissions
@@ -23,8 +23,8 @@ from datetime import *
 from django.core.mail import EmailMessage
 from django.conf import settings
 from django.template.loader import get_template
-from email.mime.text import MIMEText
-from email.mime.multipart import MIMEMultipart
+
+import requests
 # Create your views here.
 
 def SendEmail(asunto, mensaje, emails):
@@ -586,7 +586,7 @@ class CalculoTiempoMontoView(APIView):
                 elif minutos_totales >= (tiempo_libre+1):
                     cobro = format( (minutos_totales - tiempo_libre) * costo_minuto ,".2f")
 
-                return Response({'FechaHoraIngreso': ingreso, 'FechaHoraSalida':fecha_hora_salida, 'DuracionHoraFrac': int(minutos_totales), 'MontoPagar': cobro, 'TiempoLibreMin': int(tiempo_libre)})
+                return Response({'FechaHoraIngreso': ingreso, 'FechaHoraSalida':fecha_hora_salida, 'DuracionHoraFrac': int(minutos_totales), 'MontoPagar': cobro, 'HoraGratis': int(tiempo_libre)})
             
             #Cobro Hora o Fraccion  
             elif config_cobro == 2:
@@ -716,7 +716,7 @@ class ReporteParqueaderosLibresDhView(APIView):
     
     
 #Fecha y Hora
-import requests
+
 class GetDateTimeView(APIView):
     authentication_classes=[TokenAuthentication,]
     permission_classes = [DjangoModelPermissions]
@@ -749,6 +749,7 @@ class ReporteIngresosView(APIView):
             fecha_inicial = request.query_params.get("fechaini", None)
             fecha_final = request.query_params.get("fechafin", None)
             datos=[]
+   
             
             if(fecha_final < fecha_inicial):
                 return Response({'Error' : 'Fechas no validas'})
@@ -757,31 +758,99 @@ class ReporteIngresosView(APIView):
                 serializer_vehiculo= IngresoSalidaSerializer(ingreso_salida_vehiculo, many=True)
                 #print(serializer_vehiculo.data)
                 
-                
                 for i in range(len(serializer_vehiculo.data)):
-                   # print(serializer_vehiculo.data[i]['pl_placa'])
-
+                   #print(serializer_vehiculo.data[i]['pl_placa'])
+                    
                     ingresovisita = IngresoDeVisita.objects.filter(pl_placa__exact=serializer_vehiculo.data[i]['pl_placa']).filter(vi_status=False)
-                    serializer_ingresovisita = IngresoDeVisitaSerializer(ingresovisita, many=True)
+                    #print(ingresovisita)
+                    serializer_ingresovisita = IngresoDeVisitaReporteSerializer(ingresovisita, many=True)
+                    #print(serializer_ingresovisita.data[0]['vd_cedula'])
                     
-                    visitante = VisitanteDatos.objects.get(vd_cedula=serializer_ingresovisita.data[i]['vd_cedula'])
+                    visitante = VisitanteDatos.objects.get(vd_cedula=serializer_ingresovisita.data[0]['vd_cedula'])
                     serializer_visitante = VisitanteDatosSerializer(visitante)
-                    
-                    #print(serializer_ingresovisita.data[i]['ph_propietario'])
-                    prop_intance = ApartamentoPh.objects.get(id=serializer_ingresovisita.data[i]['ph_propietario'])
+                    #print(serializer_visitante.data)
+           
+                    prop_intance = ApartamentoPh.objects.get(id=serializer_ingresovisita.data[0]['ph_propietario'])
                     serializer_prop = ApartamentoPhSerializer(prop_intance)
+                    #print(serializer_prop)
                     
-                    fact_intance = Facturacion.objects.filter(ph_propietario=serializer_ingresovisita.data[i]['ph_propietario']).filter(vi_fecha_hora_salida__gte=fecha_inicial+(' 00:00:00')).filter(vi_fecha_hora_salida__lte=fecha_final+(' 23:59:59'))
+                    fact_intance = Facturacion.objects.filter(vi_visitante=serializer_ingresovisita.data[0]['id']).filter(vi_fecha_hora_salida__gte=fecha_inicial+(' 00:00:00')).filter(vi_fecha_hora_salida__lte=fecha_final+(' 23:59:59'))
                     serializer_fact = FacturacionSerializer(fact_intance, many=True)
+                    #print(serializer_fact.data)
                     
+                    #print(serializer_vehiculo.data[i]['vi_fecha_hora_ingreso'])
+                    #print(serializer_vehiculo.data[i]['vi_fecha_hora_salida'])
+                    #print(serializer_vehiculo.data[i]['pl_placa'])
+                    #print(serializer_vehiculo.data[i]['pk_slot'])
+                    #print(serializer_ingresovisita.data[0]['vd_cedula'])
+                    #print(serializer_visitante.data['vd_nombre'])
+                    #print(serializer_prop.data['ph_propietario'])
+                    #print(serializer_prop.data['ph_apartamento'])
+                    #print(serializer_prop.data['ph_torre'])
+                    #print(serializer_fact.data[0]['fa_tiempo'])
+                    #print(serializer_fact.data[0]['fa_monto'])
                     
-                    lista = serializer_vehiculo.data[i]['vi_fecha_hora_ingreso'] ,serializer_vehiculo.data[i]['vi_fecha_hora_salida'],serializer_vehiculo.data[i]['pl_placa'], \
-                        serializer_vehiculo.data[i]['pk_slot'], serializer_ingresovisita.data[i]['vd_cedula'],serializer_visitante.data['vd_nombre'], \
-                        serializer_prop.data['ph_propietario'],serializer_prop.data['ph_apartamento'],serializer_prop.data['ph_torre'], \
-                        serializer_fact.data[i]['fa_tiempo'], serializer_fact.data[i]['fa_monto']
+                    lista = {'vi_fecha_hora_ingreso':serializer_vehiculo.data[i]['vi_fecha_hora_ingreso'] ,'vi_fecha_hora_salida':serializer_vehiculo.data[i]['vi_fecha_hora_salida'],'pl_placa':serializer_vehiculo.data[i]['pl_placa'], \
+                        'pk_slot':serializer_vehiculo.data[i]['pk_slot'], 'vd_cedula':serializer_ingresovisita.data[0]['vd_cedula'], 'vd_nombre':serializer_visitante.data['vd_nombre'], \
+                        'ph_propietario':serializer_prop.data['ph_propietario'],'ph_apartamento':serializer_prop.data['ph_apartamento'],'ph_torre':serializer_prop.data['ph_torre'], \
+                        'fa_tiempo':serializer_fact.data[0]['fa_tiempo'], 'fa_monto':serializer_fact.data[0]['fa_monto']}
                     
                     datos.append(lista)
-                    
+             
+                
         except Exception as e:
             print(e)
         return Response({'Generando' : datos })
+    
+#Recaudo por dia
+class ReporteRecaudoView(APIView):
+    authentication_classes=[TokenAuthentication,]
+    permission_classes = [DjangoModelPermissions]
+    
+    queryset = Facturacion.objects.all()
+    serializer_class = FacturacionSerializer
+    
+    
+    def get(self, request, *args, **kwargs):
+        try:
+            datos=[]
+            fecha_inicial = request.query_params.get("fechaini", None)
+            fecha_final = request.query_params.get("fechafin", None)
+            
+            fact_intance = Facturacion.objects.filter(vi_fecha_hora_salida__gte=fecha_inicial+(' 00:00:00')).filter(vi_fecha_hora_salida__lte=fecha_final+(' 23:59:59'))
+            serializer_fact = FacturacionSerializer(fact_intance, many=True)
+            
+            #print(serializer_fact.data)
+            for i in range(len(serializer_fact.data)):
+               #print(serializer_fact.data[i]['fa_monto'])
+                lista = float(serializer_fact.data[i]['fa_monto'])
+                datos.append(lista)
+            
+            recaudo = format(sum(datos),'.2f')
+            #print(sum(datos))
+            #print(datos)
+        except Exception as e:
+            print(e)
+        return Response({'Recaudo': recaudo})
+    
+    
+class ConfigTipoPagoView(APIView):
+    authentication_classes=[TokenAuthentication,]
+    permission_classes = [DjangoModelPermissions]
+    
+    queryset = Config.objects.all()
+    serializer_class = ConfigSerializer
+    
+    def get(self, request, *args, **kwargs):
+        try:
+            config_instance = Config.objects.filter(cn_status=True)
+            #print(config_instance)
+            serializer_config = ConfigSerializer(config_instance, many=True)
+            #print(serializer_config)
+        except Exception as e:
+            print(e)
+        
+        return Response({'Configuracion':serializer_config.data})
+        
+    
+    

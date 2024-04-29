@@ -1,6 +1,6 @@
 from rest_framework import serializers
 from .models import ApartamentoPh, TorresPh, ApartamentosPh, PlacaVehiculoVisita, ParqueaderosVisita, \
-    IngresoSalidaVehiculoVisita, VisitanteDatos, IngresoDeVisita, Config, TipoVehiculo, Facturacion
+    IngresoSalidaVehiculoVisita, VisitanteDatos, IngresoDeVisita, Config, TipoVehiculo, Facturacion, Config
     
 class TorresPhSerializer(serializers.ModelSerializer):
     class Meta:
@@ -53,6 +53,11 @@ class VisitanteDatosSerializer(serializers.ModelSerializer):
         fields = ["id", "vd_nombre", "vd_cedula", "vd_telefono"]
         
 class IngresoDeVisitaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = IngresoDeVisita
+        fields = ["id", "iv_fecha", "vd_cedula", "ph_propietario", "pl_placa", "pk_slot", 'vi_status']
+        
+class IngresoDeVisitaReporteSerializer(serializers.ModelSerializer):
     class Meta:
         model = IngresoDeVisita
         fields = ["id", "iv_fecha", "vd_cedula", "ph_propietario", "pl_placa", "pk_slot", 'vi_status']
