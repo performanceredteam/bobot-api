@@ -1,6 +1,6 @@
 from django.contrib import admin
 from .models import ApartamentoPh, TorresPh, ApartamentosPh, PlacaVehiculoVisita, ParqueaderosVisita, \
-    IngresoSalidaVehiculoVisita, VisitanteDatos, Config, TipoVehiculo
+    IngresoSalidaVehiculoVisita, VisitanteDatos, Config, TipoVehiculo, Impresora, Conjunto
 
 # Register your models here.
 #Admin Torres
@@ -36,6 +36,11 @@ class ConfigAdmin(admin.ModelAdmin):
 class TipoVehiculoAdmin(admin.ModelAdmin):
     list_display = ["vh_tipo", "vh_desc"]
 
+class ConjuntoAdmin(admin.ModelAdmin):
+    list_display = ["cj_nombre", "cj_direccion", "cj_ciudad", "cj_tel", "cj_msn"]
+
+class ImpresoraAdmin(admin.ModelAdmin):
+    list_display = ["cg_nombre","cg_impresora"]
 
     
 admin.site.register(TorresPh, TorresPhAdmin)
@@ -47,3 +52,5 @@ admin.site.register(IngresoSalidaVehiculoVisita, IngresoVehiculoVisitaAdmin)
 admin.site.register(VisitanteDatos, VisitanteDatosAdmin)
 admin.site.register(Config, ConfigAdmin)
 admin.site.register(TipoVehiculo, TipoVehiculoAdmin)
+admin.site.register(Conjunto,ConjuntoAdmin)
+admin.site.register(Impresora,ImpresoraAdmin)

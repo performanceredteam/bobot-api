@@ -3,9 +3,10 @@ from django.urls import path
 from .views import ApartamentoPhView, TorresApastamentosView, PlacasVheiculosVisitaView, ParqueaderoVisitaView, \
     IngresoSalidaVisitaVehiculoView, VisitanteDatosView, CalculoTiempoMontoView, TipoVehiculoView, ReporteParqueaderosDhView, \
     ReporteCarrosParqueadosDhView, ReporteParqueaderosLibresDhView, GetDateTimeView, ResumenVisitaVehiculoView, ReporteIngresosView, \
-    ReporteRecaudoView, ConfigTipoPagoView
+    ReporteRecaudoView, ConfigTipoPagoView, ConjuntoView, ImpresoraView, CustomAuthToken
 
 urlpatterns = [
+    path('api-token-auth/', CustomAuthToken.as_view(), name='api-token-auth'),
     path('apartamentoph-registro/', ApartamentoPhView.as_view(), name='apartamentoph_registro'),
     path('apartamentos-buscar/', ApartamentoPhView.as_view(), name='apartamentos_buscar'),
     path('apartamentoscasas-buscar/', TorresApastamentosView.as_view(), name='apartamentoscasas_buscar'),
@@ -30,4 +31,6 @@ urlpatterns = [
     path('reporteingresos-rep/', ReporteIngresosView.as_view(), name='reporteingresos-rep'),
     path('recaudo-rep/', ReporteRecaudoView.as_view(), name='recaudo-rep'),
     path('config-pago/', ConfigTipoPagoView.as_view(), name='config-pago'),
+    path('conjunto/', ConjuntoView.as_view(), name='conjunto'),
+    path('impresora/', ImpresoraView.as_view(), name='impresora'),
 ]

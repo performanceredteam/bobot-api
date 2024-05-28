@@ -5,16 +5,20 @@ from rest_framework.response import Response
 from rest_framework import status
 from rest_framework.authentication import TokenAuthentication
 
+from rest_framework.authtoken.views import ObtainAuthToken
+from rest_framework.authtoken.models import Token
+
 from .models import ApartamentoPh, TorresPh, ApartamentosPh, PlacaVehiculoVisita, \
     ParqueaderosVisita, IngresoSalidaVehiculoVisita, VisitanteDatos, IngresoDeVisita, \
-    TipoVehiculo, Config, Facturacion
+    TipoVehiculo, Config, Facturacion, Conjunto, Impresora
 
 from .serializer import ApartamentoPhSerializer, \
     TorresPhSerializer, ApartamentosCasasPhSerializer, \
     PlacaVehiculoVisitaSerializer, ParqueaderosVisitaSerializer, \
     IngresoVisitaSerializer, SalidaVisitaSerializer, IngresoSalidaSerializer, \
     VisitanteDatosSerializer, IngresoDeVisitaSerializer, SalidaDeVisitaSerializer, \
-    TipoVehiculoSerializer, ConfigSerializer, FacturacionSerializer, IngresoDeVisitaReporteSerializer
+    TipoVehiculoSerializer, ConfigSerializer, FacturacionSerializer, IngresoDeVisitaReporteSerializer, \
+    ConjuntoSerializer, ImpresoraSerializer
 
 
 from rest_framework.permissions import DjangoModelPermissions
@@ -26,6 +30,20 @@ from django.template.loader import get_template
 
 import requests
 # Create your views here.
+
+class CustomAuthToken(ObtainAuthToken):
+
+    def post(self, request, *args, **kwargs):
+        serializer = self.serializer_class(data=request.data,context={'request': request})
+        serializer.is_valid(raise_exception=True)
+        user = serializer.validated_data['user']
+        token, created = Token.objects.get_or_create(user=user)
+        return Response({
+            'token': token.key,
+            'user': user.username,
+            'name': user.first_name,
+            'last': user.last_name
+        })
 
 def SendEmail(asunto, mensaje, emails):
     #send_mail(subjet=asunto, menssage=mensaje, from_email=settings.EMAIL_HOST_USER, recipient_list=emails)
@@ -790,7 +808,7 @@ class ReporteIngresosView(APIView):
                     #print(serializer_fact.data[0]['fa_tiempo'])
                     #print(serializer_fact.data[0]['fa_monto'])
                     
-                    lista = {'vi_fecha_hora_ingreso':serializer_vehiculo.data[i]['vi_fecha_hora_ingreso'] ,'vi_fecha_hora_salida':serializer_vehiculo.data[i]['vi_fecha_hora_salida'],'pl_placa':serializer_vehiculo.data[i]['pl_placa'], \
+                    lista = {'vi_fecha_hora_ingreso':serializer_vehiculo.data[i]['vi_fecha_hora_ingreso'],'vi_fecha_hora_salida':serializer_vehiculo.data[i]['vi_fecha_hora_salida'],'pl_placa':serializer_vehiculo.data[i]['pl_placa'], \
                         'pk_slot':serializer_vehiculo.data[i]['pk_slot'], 'vd_cedula':serializer_ingresovisita.data[0]['vd_cedula'], 'vd_nombre':serializer_visitante.data['vd_nombre'], \
                         'ph_propietario':serializer_prop.data['ph_propietario'],'ph_apartamento':serializer_prop.data['ph_apartamento'],'ph_torre':serializer_prop.data['ph_torre'], \
                         'fa_tiempo':serializer_fact.data[0]['fa_tiempo'], 'fa_monto':serializer_fact.data[0]['fa_monto']}
@@ -853,4 +871,34 @@ class ConfigTipoPagoView(APIView):
         return Response({'Configuracion':serializer_config.data})
         
     
+class ConjuntoView(APIView):
+    authentication_classes=[TokenAuthentication,]
+    permission_classes = [DjangoModelPermissions]
     
+    queryset = Conjunto.objects.all()
+    serializer_class = ConjuntoSerializer
+    
+    def get(self, request, *args, **kwargs):
+        try:
+            conjunto_instance = Conjunto.objects.all()
+            serializer_conjunto = ConjuntoSerializer(conjunto_instance, many=True)
+        except Exception as e:
+            print(e)
+            
+        return Response({'Conjunto':serializer_conjunto.data})
+
+class ImpresoraView(APIView):
+    authentication_classes=[TokenAuthentication,]
+    permission_classes = [DjangoModelPermissions]
+    
+    queryset = Impresora.objects.all()
+    serilizer_class = ImpresoraSerializer
+    
+    def get(self, request, *args, **kwargs):
+        try:
+            impresora_instance = Impresora.objects.all()
+            serializer_impresora = ImpresoraSerializer(impresora_instance, many=True)
+        except Exception as e:
+            print(e)
+            
+        return Response({'Impresora':serializer_impresora.data})

@@ -105,4 +105,21 @@ class Facturacion(models.Model):
     ph_propietario = models.ForeignKey(ApartamentoPh, on_delete=models.CASCADE)
     vi_visitante = models.ForeignKey(IngresoDeVisita, on_delete=models.CASCADE)
     
+#Conjunto Datos
+class Conjunto(models.Model):
+    cj_nombre = models.CharField(max_length=50)
+    cj_direccion = models.CharField(max_length=50)
+    cj_ciudad = models.CharField(max_length=50)
+    cj_tel = models.CharField(max_length=12)
+    cj_msn = models.CharField(max_length=200)
     
+    def __str__(self):
+        return self.cj_nombre
+
+#Config Impresora
+class Impresora(models.Model):
+    cg_nombre = models.CharField(max_length=30)
+    cg_impresora = models.BooleanField()
+    
+    def __str__(self):
+        return self.cg_nombre
