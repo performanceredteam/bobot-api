@@ -72,8 +72,6 @@ class VisitanteDatos(models.Model):
     def __str__(self):
         return self.vd_nombre
     
-
-
 #Ingreso de Visita 
 class IngresoDeVisita(models.Model):
     iv_fecha = models.DateTimeField(format('%Y-%m-%d %H:%M:%s'), default=timezone.now)
@@ -93,6 +91,10 @@ class Config(models.Model):
     cn_config = models.IntegerField()
     cn_hgratis = models.IntegerField()
     cn_status = models.BooleanField()
+    cn_hora_inicial = models.TimeField(null=True)
+    cn_hora_final = models.TimeField(null=True)
+    cn_plena_status = models.BooleanField(default=False)
+    cn_plena_monto = models.BigIntegerField()
     
     def __str__(self):
         return self.cn_desc
@@ -104,6 +106,7 @@ class Facturacion(models.Model):
     fa_tiempo = models.CharField(max_length=15)
     ph_propietario = models.ForeignKey(ApartamentoPh, on_delete=models.CASCADE)
     vi_visitante = models.ForeignKey(IngresoDeVisita, on_delete=models.CASCADE)
+    fa_status_caja = models.BooleanField(default=True)
     
 #Conjunto Datos
 class Conjunto(models.Model):
@@ -123,3 +126,41 @@ class Impresora(models.Model):
     
     def __str__(self):
         return self.cg_nombre
+
+#Pension
+class Pension(models.Model):
+    pe_id = models.AutoField(primary_key=True, unique=True)
+    pe_placa = models.CharField(max_length=7)
+    pe_nombre = models.CharField(max_length=50)
+    pe_cedula = models.PositiveBigIntegerField(null=False)
+    pe_fecha_ini = models.DateTimeField(format('%Y-%m-%dT%H:%M:%s'), default=timezone.now)
+    pe_fecha_fin = models.DateTimeField(format('%Y-%m-%dT%H:%M:%s'), default=timezone.now)
+    pe_monto = models.DecimalField(max_digits=10, decimal_places=2)
+    pe_slot = models.ForeignKey(ParqueaderosVisita, on_delete=models.CASCADE)
+    pe_tipo_vehiculo = models.ForeignKey(TipoVehiculo, on_delete=models.CASCADE)
+    pe_status = models.BooleanField(default=True)
+    pe_status_caja = models.BooleanField(default=True)
+
+    def __str__(self):
+        return str(self.pe_placa)
+
+#Config Costo Pension
+class CostoPension(models.Model):
+    cp_monto = models.BigIntegerField()
+    
+    def __str__(self):
+        return str(self.cp_monto)
+
+#Caja
+class Caja(models.Model):
+    cj_base_caja = models.DecimalField(max_digits=10, decimal_places=2)
+    cj_fecha_apertura = models.DateTimeField(format('%Y-%m-%dT%H:%M:%s'), default=timezone.now)
+    cj_fecha_cierre = models.DateTimeField(format('%Y-%m-%dT%H:%M:%s'), null=True)
+    cj_total_pension = models.DecimalField(max_digits=10, decimal_places=2, default="0.00")
+    cj_total_parking = models.DecimalField(max_digits=10, decimal_places=2, default="0.00")
+    cj_gran_total = models.DecimalField(max_digits=10, decimal_places=2, default="0.00")
+    cj_usuario = models.CharField(max_length=50)
+    cj_status_caja = models.BooleanField(default=True)
+    
+    def __str__(self):
+        return self.cj_usuario

@@ -3,7 +3,9 @@ from django.urls import path
 from .views import ApartamentoPhView, TorresApastamentosView, PlacasVheiculosVisitaView, ParqueaderoVisitaView, \
     IngresoSalidaVisitaVehiculoView, VisitanteDatosView, CalculoTiempoMontoView, TipoVehiculoView, ReporteParqueaderosDhView, \
     ReporteCarrosParqueadosDhView, ReporteParqueaderosLibresDhView, GetDateTimeView, ResumenVisitaVehiculoView, ReporteIngresosView, \
-    ReporteRecaudoView, ConfigTipoPagoView, ConjuntoView, ImpresoraView, CustomAuthToken
+    ReporteRecaudoView, ConfigTipoPagoView, ConjuntoView, ImpresoraView, CustomAuthToken, CostoPensionView, \
+    PensionView, PensionReporteView, CajaView, CorteCajaView
+        
 
 urlpatterns = [
     path('api-token-auth/', CustomAuthToken.as_view(), name='api-token-auth'),
@@ -33,4 +35,11 @@ urlpatterns = [
     path('config-pago/', ConfigTipoPagoView.as_view(), name='config-pago'),
     path('conjunto/', ConjuntoView.as_view(), name='conjunto'),
     path('impresora/', ImpresoraView.as_view(), name='impresora'),
+    path('costopension/', CostoPensionView.as_view(), name='costopension'),
+    path('pension/', PensionView.as_view(), name='pension'),
+    path('pension-status/<int:pk>/', PensionView.as_view(), name='pension-status'),
+    path('reporte-pension/', PensionReporteView.as_view(), name='reportepension'),
+    path('apertura-caja/', CajaView.as_view(), name='apertura-caja'),
+    path('corte-caja/', CorteCajaView.as_view(), name='corte-caja'),
+    path('cierre-caja/<int:pk>/', CajaView.as_view(), name='cierra-caja'),
 ]

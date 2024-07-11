@@ -1,6 +1,7 @@
 from django.contrib import admin
 from .models import ApartamentoPh, TorresPh, ApartamentosPh, PlacaVehiculoVisita, ParqueaderosVisita, \
-    IngresoSalidaVehiculoVisita, VisitanteDatos, Config, TipoVehiculo, Impresora, Conjunto
+    IngresoSalidaVehiculoVisita, VisitanteDatos, Config, TipoVehiculo, Impresora, Conjunto, \
+    CostoPension, Pension
 
 # Register your models here.
 #Admin Torres
@@ -31,7 +32,7 @@ class VisitanteDatosAdmin(admin.ModelAdmin):
     list_display = ["vd_nombre", "vd_cedula", "vd_telefono", "vd_fecha"]
     
 class ConfigAdmin(admin.ModelAdmin):
-    list_display = ["cn_desc", "cn_monto", "cn_config", "cn_hgratis", "cn_status"]
+    list_display = ["cn_desc", "cn_monto", "cn_config", "cn_hgratis", "cn_status", "cn_hora_inicial", "cn_hora_final", "cn_plena_status", "cn_plena_monto"]
 
 class TipoVehiculoAdmin(admin.ModelAdmin):
     list_display = ["vh_tipo", "vh_desc"]
@@ -41,7 +42,12 @@ class ConjuntoAdmin(admin.ModelAdmin):
 
 class ImpresoraAdmin(admin.ModelAdmin):
     list_display = ["cg_nombre","cg_impresora"]
+    
+class CostoPensionAdmin(admin.ModelAdmin):
+    list_display = ["cp_monto"]
 
+class PensionAdmin(admin.ModelAdmin):
+    list_display = ["pe_placa", "pe_nombre", "pe_fecha_ini", "pe_fecha_fin", "pe_slot"]
     
 admin.site.register(TorresPh, TorresPhAdmin)
 admin.site.register(ApartamentosPh, ApartamentoCasaPhAdmin)
@@ -54,3 +60,5 @@ admin.site.register(Config, ConfigAdmin)
 admin.site.register(TipoVehiculo, TipoVehiculoAdmin)
 admin.site.register(Conjunto,ConjuntoAdmin)
 admin.site.register(Impresora,ImpresoraAdmin)
+admin.site.register(CostoPension,CostoPensionAdmin)
+admin.site.register(Pension,PensionAdmin)

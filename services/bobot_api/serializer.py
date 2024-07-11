@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import ApartamentoPh, TorresPh, ApartamentosPh, PlacaVehiculoVisita, ParqueaderosVisita, \
     IngresoSalidaVehiculoVisita, VisitanteDatos, IngresoDeVisita, Config, TipoVehiculo, Facturacion, Config, \
-    Conjunto, Impresora
+    Conjunto, Impresora, Pension, CostoPension, Caja
     
 class TorresPhSerializer(serializers.ModelSerializer):
     class Meta:
@@ -76,7 +76,7 @@ class ConfigSerializer(serializers.ModelSerializer):
 class FacturacionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Facturacion
-        fields = ["vi_fecha_hora_salida", "fa_monto", "fa_tiempo", "ph_propietario", "vi_visitante"]
+        fields = ["id", "vi_fecha_hora_salida", "fa_monto", "fa_tiempo", "ph_propietario", "vi_visitante"]
 
 class ConjuntoSerializer(serializers.ModelSerializer):
     class Meta:
@@ -87,3 +87,43 @@ class ImpresoraSerializer(serializers.ModelSerializer):
     class Meta:
         model = Impresora
         fields = ["cg_nombre", "cg_impresora"]
+
+class PensionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Pension
+        fields = ["pe_id","pe_placa", "pe_nombre", "pe_cedula", "pe_fecha_ini", "pe_fecha_fin", "pe_monto", "pe_slot", "pe_tipo_vehiculo", "pe_status"]
+
+class PensionStatusSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Pension
+        fields = ["pe_placa","pe_status"]
+
+class CostoPensionSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = CostoPension
+        fields = "__all__"
+
+class CajaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Caja
+        fields = "__all__"
+
+class CajaAperturaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Caja
+        fields = ["id", "cj_base_caja", "cj_fecha_apertura", "cj_usuario", "cj_status_caja"]
+
+class CajaCierreSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Caja
+        fields = ["cj_fecha_cierre", "cj_total_parking", "cj_total_pension", "cj_gran_total", "cj_status_caja"]
+        
+class StatusFacturacionCajaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Facturacion
+        fields =["fa_status_caja"]
+
+class StatusPensionCajaSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Pension
+        fields =["pe_status_caja"]

@@ -10,7 +10,7 @@ from rest_framework.authtoken.models import Token
 
 from .models import ApartamentoPh, TorresPh, ApartamentosPh, PlacaVehiculoVisita, \
     ParqueaderosVisita, IngresoSalidaVehiculoVisita, VisitanteDatos, IngresoDeVisita, \
-    TipoVehiculo, Config, Facturacion, Conjunto, Impresora
+    TipoVehiculo, Config, Facturacion, Conjunto, Impresora, Pension, CostoPension, Caja
 
 from .serializer import ApartamentoPhSerializer, \
     TorresPhSerializer, ApartamentosCasasPhSerializer, \
@@ -18,8 +18,8 @@ from .serializer import ApartamentoPhSerializer, \
     IngresoVisitaSerializer, SalidaVisitaSerializer, IngresoSalidaSerializer, \
     VisitanteDatosSerializer, IngresoDeVisitaSerializer, SalidaDeVisitaSerializer, \
     TipoVehiculoSerializer, ConfigSerializer, FacturacionSerializer, IngresoDeVisitaReporteSerializer, \
-    ConjuntoSerializer, ImpresoraSerializer
-
+    ConjuntoSerializer, ImpresoraSerializer, PensionSerializer, CostoPensionSerializer, PensionStatusSerializer, \
+    CajaSerializer, CajaAperturaSerializer, CajaCierreSerializer, StatusFacturacionCajaSerializer, StatusPensionCajaSerializer
 
 from rest_framework.permissions import DjangoModelPermissions
 from datetime import *
@@ -560,7 +560,7 @@ class CalculoTiempoMontoView(APIView):
     def get(self, request, *args, **kwargs):
         try: 
             placa = request.query_params.get("placa", None)
-            hora = request.query_params.get("hora", None)
+            hora = "2024-07-10T14:00:00"#request.query_params.get("hora", None)
             cobro = request.query_params.get("cobro", None)
                 
             info = IngresoSalidaVehiculoVisita.objects.get(pl_placa=placa, vi_status=True)
@@ -570,7 +570,7 @@ class CalculoTiempoMontoView(APIView):
             fecha_hora_ingreso = datetime.strptime(serializer_info.data['vi_fecha_hora_ingreso'], '%Y-%m-%dT%H:%M:%S')
             #print(fecha_hora_ingreso)
             fecha_hora_salida = datetime.strptime(hora, '%Y-%m-%dT%H:%M:%S')
-            #print(fecha_hora_salida)
+            #print("Salida",fecha_hora_salida)
             time_calculado = (fecha_hora_salida - fecha_hora_ingreso)/60
 
             #print(str(time_calculado))
@@ -595,6 +595,41 @@ class CalculoTiempoMontoView(APIView):
                 costo_hora = config_serializer.data['cn_monto']
                 tiempo_libre = config_serializer.data['cn_hgratis'] #minutos
             
+            #Variables Tarifa Plena
+            hora_inicial_plena = config_serializer.data['cn_hora_inicial']
+            hora_final_plena = config_serializer.data['cn_hora_final']
+            status_tarifa_plena = config_serializer.data['cn_plena_status']
+            #monto_tarifa_plena = "0.00"
+            
+            response = requests.get("http://worldtimeapi.org/api/timezone/America/Bogota")
+            data = response.json()
+            
+            fecha_hora_inicial = data['datetime'][0:10]+" "+hora_inicial_plena
+            
+            fecha_= data['datetime'][0:10]+" "+hora_final_plena
+            fecha_hora_final = datetime.strptime(fecha_, '%Y-%m-%d %H:%M:%S')
+            from datetime import timedelta
+            td = timedelta(1)
+            #print(fecha_hora_final + td)
+            
+            fecha_hora_inicial_plena = datetime.strptime(fecha_hora_inicial, '%Y-%m-%d %H:%M:%S')
+            fecha_hora_final_plena = fecha_hora_final + td
+            hora_adicional = False
+            
+            if(fecha_hora_salida >= fecha_hora_inicial_plena  and fecha_hora_salida <= fecha_hora_final_plena and status_tarifa_plena == True):
+                monto_tarifa_plena = config_serializer.data['cn_plena_monto']
+                vacia_tiempo_libre = True
+            elif(fecha_hora_salida >= fecha_hora_inicial_plena  and fecha_hora_salida >= fecha_hora_final_plena and status_tarifa_plena == True):
+                monto_tarifa_plena = config_serializer.data['cn_plena_monto']
+                vacia_tiempo_libre = True
+                hora_adicional = True
+            else:
+                monto_tarifa_plena = "0.00"
+                vacia_tiempo_libre = False
+            
+            print(monto_tarifa_plena)
+            
+            
             cobro = None
             
             #Cobro por Minuto
@@ -611,9 +646,14 @@ class CalculoTiempoMontoView(APIView):
                 #print("entra en 2")
                 hora = (int(tiempo[1]))
                 if hora < (tiempo_libre/60): #Hora(s) Gratis
-                    cobro = "0.00"
-                    horas_totales = str(hora)+":"+str(minutos)
-                    hora_gratis = (tiempo_libre/60)
+                    if(vacia_tiempo_libre == False):
+                        cobro = "0.00"
+                        horas_totales = str(hora)+":"+str(minutos)
+                        hora_gratis = (tiempo_libre/60)
+                    elif(vacia_tiempo_libre == True):
+                        cobro = monto_tarifa_plena
+                        horas_totales = str(hora)+":"+str(minutos)
+                        hora_gratis = 0
                 elif hora >= 1 or hora >= (tiempo_libre/60):
                     #print(hora)
                     
@@ -626,9 +666,23 @@ class CalculoTiempoMontoView(APIView):
                         #print("plushora",plushora)
                     horas_totales = str(int((hora + plushora)))
                     horas_totales_cobro = int((hora + plushora))
-                    hora_gratis = (tiempo_libre/60)
-                    #print(horas_totales)
-                    cobro =  format( (horas_totales_cobro - hora_gratis) * costo_hora ,".2f") #Menos Hora(s) Gratis
+                    if(vacia_tiempo_libre == False):
+                        hora_gratis = (tiempo_libre/60)
+                        cobro = format((horas_totales_cobro - hora_gratis) * costo_hora,".2f") #Menos Hora(s) Gratis
+                    elif(vacia_tiempo_libre == True and hora_adicional == True):
+                        #print("entra")
+                        hora_gratis = 0
+                        time_calculado = (fecha_hora_salida - fecha_hora_final_plena)/60
+                        tiempo = str(time_calculado).split(":")
+                        #print("split", tiempo)
+                        horas = (int(tiempo[1]))
+                        print(horas)
+                        cobro = format((horas * costo_hora) + monto_tarifa_plena,".2f")
+                    elif(vacia_tiempo_libre == True):
+                        #print("entra")
+                        hora_gratis = 0
+                        cobro = format(monto_tarifa_plena,".2f")
+                    
             
 
                 return Response({'FechaHoraIngreso': ingreso, 'FechaHoraSalida':fecha_hora_salida,  'DuracionHoraFrac':horas_totales, 'MontoPagar': cobro, 'HoraGratis': int(hora_gratis) })
@@ -832,10 +886,13 @@ class ReporteRecaudoView(APIView):
     def get(self, request, *args, **kwargs):
         try:
             datos=[]
-            fecha_inicial = request.query_params.get("fechaini", None)
+            datos_pension=[]
+            datos_total=[]
+            #fecha_inicial = request.query_params.get("fechaini", None)
             fecha_final = request.query_params.get("fechafin", None)
             
-            fact_intance = Facturacion.objects.filter(vi_fecha_hora_salida__gte=fecha_inicial+(' 00:00:00')).filter(vi_fecha_hora_salida__lte=fecha_final+(' 23:59:59'))
+            #fact_intance = Facturacion.objects.filter(vi_fecha_hora_salida__gte=fecha_inicial+(' 00:00:00')).filter(vi_fecha_hora_salida__lte=fecha_final+(' 23:59:59'))
+            fact_intance = Facturacion.objects.filter(vi_fecha_hora_salida__lte=fecha_final+(' 23:59:59')).filter(fa_status_caja=True)
             serializer_fact = FacturacionSerializer(fact_intance, many=True)
             
             #print(serializer_fact.data)
@@ -844,12 +901,37 @@ class ReporteRecaudoView(APIView):
                 lista = float(serializer_fact.data[i]['fa_monto'])
                 datos.append(lista)
             
-            recaudo = format(sum(datos),'.2f')
+            parking = format(sum(datos),'.2f')
+            
+            pension_instance = Pension.objects.filter(pe_fecha_ini__lte=fecha_final+(' 23:59:59')).filter(pe_status_caja=True)
+            serializer_pension = PensionSerializer(pension_instance, many=True)
+            
+            for i in range(len(serializer_pension.data)):
+                lista = float(serializer_pension.data[i]['pe_monto'])
+                datos_pension.append(lista)
+            
+            pension = format(sum(datos_pension),'.2f')
+            
+            caja_instance = Caja.objects.filter(cj_fecha_apertura__lte=fecha_final+(' 23:59:59')).filter(cj_status_caja=True)
+            serializer_caja = CajaSerializer(caja_instance, many=True)
+            print(serializer_caja.data[0]['cj_base_caja'])
+            if serializer_caja.data[:]:
+                lista = float(serializer_caja.data[0]['cj_base_caja'])
+                datos_total.append(lista)
+            else:
+                datos_total.append(float('0.00'))
+            
+            datos_total.append(sum(datos))
+            datos_total.append(sum(datos_pension))
+            #datos_total.append(serializer_caja.data['cj_base_caja'])
+            total = format(sum(datos_total),'.2f')
             #print(sum(datos))
             #print(datos)
         except Exception as e:
             print(e)
-        return Response({'Recaudo': recaudo})
+        return Response({'Parking': parking, 'Pension': pension, 'Total': total})
+    
+    
     
     
 class ConfigTipoPagoView(APIView):
@@ -902,3 +984,218 @@ class ImpresoraView(APIView):
             print(e)
             
         return Response({'Impresora':serializer_impresora.data})
+    
+class CostoPensionView(APIView):
+    authentication_classes=[TokenAuthentication,]
+    permission_classes = [DjangoModelPermissions]
+    
+    queryset = CostoPension.objects.all()
+    serializer_class = CostoPensionSerializer
+    
+    def get(self, request, *args, **kwargs):
+        try:
+            costopension_instance = CostoPension.objects.all()
+            serializer_costopension = CostoPensionSerializer(costopension_instance, many=True)
+        except Exception as e:
+            print(e)
+        
+        return Response({'Monto':serializer_costopension.data})
+    
+class PensionView(APIView):
+    authentication_classes=[TokenAuthentication,]
+    permission_classes = [DjangoModelPermissions]
+    
+    queryset = Pension.objects.all()
+    serializer_pension = PensionSerializer
+    
+    def post(self, request, *args, **kwargs):
+        try: 
+            data = {
+                'pe_placa': request.data.get('pe_placa'),
+                'pe_nombre': request.data.get('pe_nombre'),
+                'pe_cedula': request.data.get('pe_cedula'),
+                'pe_fecha_ini': request.data.get('pe_fecha_ini'),
+                'pe_fecha_fin': request.data.get('pe_fecha_fin'),
+                'pe_monto': request.data.get('pe_monto'),
+                'pe_slot': request.data.get('pe_slot'),
+                'pe_tipo_vehiculo': request.data.get('pe_tipo_vehiculo')
+            }
+            
+            serializer = PensionSerializer(data=data)
+
+        except Exception as e:
+            print(e)
+        
+        if serializer.is_valid():
+            #print(serializer.is_valid())
+            serializer.save()
+            return Response({'Message' : 'Success', 'Pension' : serializer.data}, status=status.HTTP_201_CREATED)
+        
+        return Response({'Message' : 'Error', 'Detail': serializer.errors}, status=status.HTTP_400_BAD_REQUEST)
+    
+    
+    def get(self, request, *args, **kwargs):
+        try:
+            #placa = request.query_params.get("placa", None)
+            #pension_instance = Pension.objects.filter(pe_placa = placa)
+            pension_instance = Pension.objects.all().filter(pe_status=True)
+            serializer_pension = PensionSerializer(pension_instance, many=True)
+        except Exception as e:
+            print(e)
+        
+        return Response({'Pension':serializer_pension.data})
+    
+    def put(self, request, pk, format=None):
+        try:
+            data = {
+                    'pe_placa': request.data.get('pe_placa'),
+                    'pe_status': request.data.get('pe_status')
+                }
+            pension_instance = Pension.objects.get(pe_id=pk)
+            serializer_pension = PensionStatusSerializer(pension_instance,data=data, many=False)
+           # print(serializer_pension.is_valid())
+        except Exception as e:
+            print(e)
+            
+        if serializer_pension.is_valid():
+            serializer_pension.save()
+            return Response({'Message' : 'Success', "Updated" :serializer_pension.data,}, status=status.HTTP_201_CREATED)
+        
+        return Response({'Message' : 'Error', "Detail": serializer_pension.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+
+class PensionReporteView(APIView):
+    authentication_classes=[TokenAuthentication,]
+    permission_classes = [DjangoModelPermissions]
+    
+    queryset = Pension.objects.all()
+    serializer_pension = PensionSerializer
+    
+    def get(self, request, *args, **kwargs):
+        try:
+            fecha_ini = request.query_params.get("fechaini", None)
+            fecha_fin = request.query_params.get("fechafin", None)
+            pension_instance = Pension.objects.filter(pe_fecha_ini__gte=fecha_ini+(' 00:00:00')).filter(pe_fecha_ini__lte=fecha_fin+(' 23:59:59'))
+            #pension_instance = Pension.objects.all().filter(pe_status=True)
+            serializer_pension = PensionSerializer(pension_instance, many=True)
+            #print(serializer_pension.data)
+        except Exception as e:
+            print(e)
+        
+        return Response({'Reporte':serializer_pension.data})
+    
+#Caja
+class CajaView(APIView):
+    authentication_classes=[TokenAuthentication,]
+    permission_classes = [DjangoModelPermissions]
+    
+    queryset = Caja.objects.all()
+    serializer = CajaAperturaSerializer
+    
+    def post(self, request, *args, **kwargs):
+        try:
+            data = {
+                'cj_base_caja' : request.data.get('cj_base_caja'),
+                'cj_fecha_apertura' : request.data.get('cj_fecha_apertura'),
+                'cj_usuario': request.data.get('cj_usuario')
+            }
+            
+            serializer_caja = CajaAperturaSerializer(data=data)
+            
+        except Exception as e:
+            print(e)
+            
+        if serializer_caja.is_valid():
+            serializer_caja.save()
+            return Response({'Message' : 'Success', 'Caja' : serializer_caja.data}, status=status.HTTP_201_CREATED)
+        
+        return Response({'Message' : 'Error', 'Detail': serializer_caja.errors}, status=status.HTTP_400_BAD_REQUEST)
+    
+    def get(self, request, *args, **kwargs):
+        try:
+            fecha_apertura = request.query_params.get('fechaapertura', None)
+            #print(fecha_apertura)
+            caja_instance = Caja.objects.filter(cj_fecha_apertura__lte=fecha_apertura+(' 23:59:59')).filter(cj_status_caja=True)
+            serializer_caja = CajaSerializer(caja_instance, many=True)
+           # print(serializer_caja.data[:])
+            if serializer_caja.data[:]:
+                return Response({'Caja':serializer_caja.data})
+            else:
+                return Response({'Caja':[{"cj_status_caja":False}]})
+                
+        except Exception as e:
+            print(e)
+            
+    def put(self, request, pk, format=None):
+        try:
+            data = {
+                    'cj_fecha_cierre': request.data.get('cj_fecha_cierre'),
+                    'cj_total_parking': request.data.get('cj_total_parking'),
+                    'cj_total_pension': request.data.get('cj_total_pension'),
+                    'cj_gran_total': request.data.get('cj_gran_total'),
+                    'cj_status_caja': request.data.get('cj_status_caja')
+                }
+            caja_instance = Caja.objects.get(id=pk)
+            serializer_caja = CajaCierreSerializer(caja_instance,data=data, many=False)
+        except Exception as e:
+            print(e)
+            
+        if serializer_caja.is_valid():
+            serializer_caja.save()
+            return Response({'Message' : 'Success', "Updated" :serializer_caja.data,}, status=status.HTTP_201_CREATED)
+        
+        return Response({'Message' : 'Error', "Detail": serializer_caja.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+class CorteCajaView(APIView):
+    authentication_classes=[TokenAuthentication,]
+    permission_classes = [DjangoModelPermissions]
+    
+    queryset = Caja.objects.all()
+    serializer = CajaAperturaSerializer
+    
+    def put(self, request, format=None):
+        try:
+            datos_pension=[]
+            get_pension_instance = Pension.objects.filter(pe_status_caja=True)
+            get_pension_serializer = PensionSerializer(get_pension_instance, many=True)
+            #print(get_pension_serializer.data)
+            #i=0
+            #j=0
+            for i in range(len(get_pension_serializer.data)):
+                #print(get_pension_serializer.data[i]['pe_id'])
+                data={
+                    #'pe_id': get_pension_serializer.data[i]['pe_id'],
+                    #'pe_fecha_ini':request.data.get('pe_fecha_ini'),
+                    'pe_status_caja': request.data.get('status_caja')
+                }
+                
+                pension_instance = Pension.objects.get(pe_id=get_pension_serializer.data[i]['pe_id'])
+                serializer_pension = StatusPensionCajaSerializer(pension_instance,data=data, many=False)
+                if serializer_pension.is_valid():
+                    serializer_pension.save()
+                datos_pension.append(i)
+            
+            datos_facturacion=[]
+            get_factura_instance = Facturacion.objects.filter(fa_status_caja=True)
+            get_factura_serializer = FacturacionSerializer(get_factura_instance, many=True)
+            #print(get_factura_serializer.data)
+            for j in range(len(get_factura_serializer.data)):
+                #print(get_factura_serializer.data[j]['id'])
+                dataj={
+                    'fa_status_caja': request.data.get('status_caja')
+                }
+               
+                factura_instance = Facturacion.objects.get(id=get_factura_serializer.data[j]['id'])
+                factura_serializer = StatusFacturacionCajaSerializer(factura_instance,data=dataj, many=False)
+                #print(factura_serializer.is_valid())
+                if factura_serializer.is_valid():
+                    factura_serializer.save()
+                #print(factura_serializer.data)
+                datos_facturacion.append(j)
+                
+                
+            return Response({'Message' : 'Success', "Parking": len(datos_facturacion), "Pension" :len(datos_pension)}, status=status.HTTP_201_CREATED)
+        except Exception as e:
+            print(e)
+        
+        return Response({'Message' : 'Error', "Detail": serializer_pension.errors}, status=status.HTTP_400_BAD_REQUEST)  
