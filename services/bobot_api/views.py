@@ -55,7 +55,7 @@ def SendEmail(asunto, mensaje, emails):
         subject=asunto,
         body=message,
         from_email=settings.EMAIL_HOST_USER,
-        to=[emails, settings.EMAIL_HOST_USER],
+        to=[emails], # settings.EMAIL_HOST_USER
     )
     mail.content_subtype = "html"
     return mail.send()
@@ -355,7 +355,7 @@ class IngresoSalidaVisitaVehiculoView(APIView):
             return Response({'Message':'Error al Buscar Placa'}, status=status.HTTP_409_CONFLICT)
         
         if option == 1:
-            asunto="Ingreso de Visitante al Conjunto la Sierra PH - Madrid"
+            asunto="Ingreso de Visitante al Conjunto"
             #"Registro de Ingreso </br> Placa: "+serializer.data['pl_placa']+"Fecha y Hora Ingreso: "+serializer_info.data['vi_fecha_hora_ingreso']+ \
             #    " Parqueadero: "+serializer_info.data['pk_slot']+" Vistante: "+serializer_visitante.data['vd_nombre']+" Cédula: "+str(serializer_visitante.data['vd_cedula'])+ \
             #    " Teléfono: "+serializer_visitante.data['vd_telefono']+" Residente: "+serializer_prop.data['ph_propietario']+" Teléfono: "+serializer_prop.data['ph_telefono']+ \
@@ -423,7 +423,7 @@ class IngresoSalidaVisitaVehiculoView(APIView):
             facturaserializer.save()
             
             
-            asunto="Salida de Visitante del Conjunto la Sierra PH - Madrid"
+            asunto="Salida de Visitante del Conjunto"
             mensaje="Registro de Salida Placa: "+serializerinstance.data['pl_placa']+"\n Fecha y Hora Ingreso: "+serializer_info.data['vi_fecha_hora_ingreso']+" Fecha y Hora Salida: "+data['vi_fecha_hora_salida']+"\r\n" + \
                 " Monto: $"+data['fa_monto']+" Tiempo: "+str(data['fa_tiempo'])+" horas, Parqueadero: "+serializer_info.data['pk_slot']+"\r\n Visitante: "+serializer_visitante.data['vd_nombre']+" Cédula: "+str(serializer_visitante.data['vd_cedula'])+ \
                 " Teléfono: "+serializer_visitante.data['vd_telefono']+"\r\n Residente: "+serializer_prop.data['ph_propietario']+" Teléfono: "+serializer_prop.data['ph_telefono']+"\r\n"+ \
@@ -560,33 +560,29 @@ class CalculoTiempoMontoView(APIView):
     def get(self, request, *args, **kwargs):
         try: 
             placa = request.query_params.get("placa", None)
-            hora = "2024-07-10T14:00:00"#request.query_params.get("hora", None)
+            fecha_hora_salida = request.query_params.get("hora", None) #'2024-07-12T11:30:00'
             cobro = request.query_params.get("cobro", None)
                 
             info = IngresoSalidaVehiculoVisita.objects.get(pl_placa=placa, vi_status=True)
             serializer_info = IngresoSalidaSerializer(info)
-            ingreso = serializer_info.data['vi_fecha_hora_ingreso']
-        
-            fecha_hora_ingreso = datetime.strptime(serializer_info.data['vi_fecha_hora_ingreso'], '%Y-%m-%dT%H:%M:%S')
-            #print(fecha_hora_ingreso)
-            fecha_hora_salida = datetime.strptime(hora, '%Y-%m-%dT%H:%M:%S')
-            #print("Salida",fecha_hora_salida)
-            time_calculado = (fecha_hora_salida - fecha_hora_ingreso)/60
-
-            #print(str(time_calculado))
+            #fecha_hora_ingreso = serializer_info.data['vi_fecha_hora_ingreso']
             
-            tiempo = str(time_calculado).split(":")
-            #print("split", tiempo)
-            horas = (int(tiempo[1])*60)
-            minutos = int(float(tiempo[2]))
-            #print(minutos)
-            minutos_totales = (horas+minutos)
-            #print("horas",((horas+minutos)/60))
-            
+            # Activacion de Tarifa Plena y Variables de Configuracion
             config_instance = Config.objects.get(cn_status=True, cn_config=cobro)
             config_serializer = ConfigSerializer(config_instance)
+            hora_inicial_plena = config_serializer.data['cn_hora_inicial'] 
+            hora_final_plena = config_serializer.data['cn_hora_final']
+            status_tarifa_plena = config_serializer.data['cn_plena_status']
+            costo_tarifa_plena = config_serializer.data['cn_plena_monto']
             
-            #Variables de Configuracion
+            # Costo Tarifa Pension
+            costo_pension = None
+            costopension = CostoPension.objects.all()
+            costo_pension_serializer = CostoPensionSerializer(costopension, many=True) 
+            if(costo_pension_serializer.data[0]['cp_monto'] != "0.00"):
+                costo_pension = costo_pension_serializer.data[0]['cp_monto']
+            
+             #Variables de Configuracion
             config_cobro = config_serializer.data['cn_config']
             if config_cobro == 1:
                 costo_minuto = config_serializer.data['cn_monto']
@@ -594,98 +590,176 @@ class CalculoTiempoMontoView(APIView):
             elif config_cobro == 2:
                 costo_hora = config_serializer.data['cn_monto']
                 tiempo_libre = config_serializer.data['cn_hgratis'] #minutos
-            
-            #Variables Tarifa Plena
-            hora_inicial_plena = config_serializer.data['cn_hora_inicial']
-            hora_final_plena = config_serializer.data['cn_hora_final']
-            status_tarifa_plena = config_serializer.data['cn_plena_status']
-            #monto_tarifa_plena = "0.00"
-            
-            response = requests.get("http://worldtimeapi.org/api/timezone/America/Bogota")
-            data = response.json()
-            
-            fecha_hora_inicial = data['datetime'][0:10]+" "+hora_inicial_plena
-            
-            fecha_= data['datetime'][0:10]+" "+hora_final_plena
-            fecha_hora_final = datetime.strptime(fecha_, '%Y-%m-%d %H:%M:%S')
-            from datetime import timedelta
-            td = timedelta(1)
-            #print(fecha_hora_final + td)
-            
-            fecha_hora_inicial_plena = datetime.strptime(fecha_hora_inicial, '%Y-%m-%d %H:%M:%S')
-            fecha_hora_final_plena = fecha_hora_final + td
-            hora_adicional = False
-            
-            if(fecha_hora_salida >= fecha_hora_inicial_plena  and fecha_hora_salida <= fecha_hora_final_plena and status_tarifa_plena == True):
-                monto_tarifa_plena = config_serializer.data['cn_plena_monto']
-                vacia_tiempo_libre = True
-            elif(fecha_hora_salida >= fecha_hora_inicial_plena  and fecha_hora_salida >= fecha_hora_final_plena and status_tarifa_plena == True):
-                monto_tarifa_plena = config_serializer.data['cn_plena_monto']
-                vacia_tiempo_libre = True
-                hora_adicional = True
-            else:
-                monto_tarifa_plena = "0.00"
-                vacia_tiempo_libre = False
-            
-            print(monto_tarifa_plena)
+                
+            hora_gratis = int((tiempo_libre/60))
             
             
-            cobro = None
+            # Convertir Fechas
+            fecha_hora_ingreso = datetime.strptime(serializer_info.data['vi_fecha_hora_ingreso'], '%Y-%m-%dT%H:%M:%S')
+            fecha_hora_salida = datetime.strptime(fecha_hora_salida, '%Y-%m-%dT%H:%M:%S')
             
-            #Cobro por Minuto
-            if config_cobro == 1:
-                if minutos_totales <= tiempo_libre: #tiempo de horas (minutos) libres
-                    cobro = '0.00'
-                elif minutos_totales >= (tiempo_libre+1):
-                    cobro = format( (minutos_totales - tiempo_libre) * costo_minuto ,".2f")
-
-                return Response({'FechaHoraIngreso': ingreso, 'FechaHoraSalida':fecha_hora_salida, 'DuracionHoraFrac': int(minutos_totales), 'MontoPagar': cobro, 'HoraGratis': int(tiempo_libre)})
+            print('Ingreso:',fecha_hora_ingreso)
+            print('Salida:',fecha_hora_salida)
+            print('HoraGratis:',str(hora_gratis))
             
-            #Cobro Hora o Fraccion  
-            elif config_cobro == 2:
-                #print("entra en 2")
-                hora = (int(tiempo[1]))
-                if hora < (tiempo_libre/60): #Hora(s) Gratis
-                    if(vacia_tiempo_libre == False):
-                        cobro = "0.00"
-                        horas_totales = str(hora)+":"+str(minutos)
-                        hora_gratis = (tiempo_libre/60)
-                    elif(vacia_tiempo_libre == True):
-                        cobro = monto_tarifa_plena
-                        horas_totales = str(hora)+":"+str(minutos)
-                        hora_gratis = 0
-                elif hora >= 1 or hora >= (tiempo_libre/60):
-                    #print(hora)
+            # Regla 1 -- Cobro por Horas
+            if(fecha_hora_salida > fecha_hora_ingreso and status_tarifa_plena == False):
+                print('Regla 1')
+                horas_totales = (fecha_hora_salida - fecha_hora_ingreso)/60
+                tiempo_total = str(horas_totales).split(":")
+                horas_cobro = (int(tiempo_total[1]))
+                minutos_cobro = int(float(tiempo_total[2]))
+                
+                #Si esta dentro de las horas gratis
+                if(horas_cobro < hora_gratis):
+                    print("1.1")
+                    monto_total = '0.00'
+                #Si supero las horas gratis
+                elif(horas_cobro >= hora_gratis and minutos_cobro > 0): 
+                    print("1.2")
+                    if minutos_cobro > 0:
+                        sum_hora = (60 - minutos_cobro)
+                        plus_hora = (sum_hora + minutos_cobro) / 60 
+                    monto_total = format(((horas_cobro + plus_hora) - hora_gratis) * costo_hora,".2f")
+                else:
+                    print("1.3")
+                    monto_total = format((horas_cobro - hora_gratis) * costo_hora,".2f")
+                
+                print('hrs',str(horas_cobro))
+                print('min',str(minutos_cobro))
+                print('monto',str(monto_total))
+                
+            # Regla 2 Cobro por Horas mas Tarifa Plena
+            elif(fecha_hora_salida > fecha_hora_ingreso and status_tarifa_plena == True):
+                horas_cobro = None
+                               
+                #Fecha Actual
+                response = requests.get("http://worldtimeapi.org/api/timezone/America/Bogota")
+                dataFechaActual = response.json()
+                
+                fechaActualHoraIniPlena = dataFechaActual['datetime'][0:10]+" "+hora_inicial_plena
+                fechaActualHoraFinPlena = dataFechaActual['datetime'][0:10]+" "+hora_final_plena
+                
+                print('fecha_ini_plena', fechaActualHoraIniPlena)
+                #print('h_plena_ini',hora_inicial_plena)
+                from datetime import timedelta
+                td = timedelta(1)
+                fechaActualHoraIniPlena = datetime.strptime(fechaActualHoraIniPlena, '%Y-%m-%d %H:%M:%S')
+                fechaActualHoraFinPlena = datetime.strptime(fechaActualHoraFinPlena, '%Y-%m-%d %H:%M:%S')
+                fechaActualHoraFinPlena =fechaActualHoraFinPlena+td
+                print('fecha_fin_plena',fechaActualHoraFinPlena)
+                #print('h_plena_fin',hora_final_plena)
+                
+                if(fecha_hora_ingreso < fechaActualHoraIniPlena and fecha_hora_salida < fechaActualHoraIniPlena or fecha_hora_salida > fechaActualHoraIniPlena):
+                    print('2')
                     
-                    plushora = 0
-                    if minutos > 0:
-                        sumhora = (60 - minutos)
-                        #print("min",minutos)
-                        #print(sumhora)
-                        plushora = (sumhora + minutos) / 60 
-                        #print("plushora",plushora)
-                    horas_totales = str(int((hora + plushora)))
-                    horas_totales_cobro = int((hora + plushora))
-                    if(vacia_tiempo_libre == False):
-                        hora_gratis = (tiempo_libre/60)
-                        cobro = format((horas_totales_cobro - hora_gratis) * costo_hora,".2f") #Menos Hora(s) Gratis
-                    elif(vacia_tiempo_libre == True and hora_adicional == True):
-                        #print("entra")
-                        hora_gratis = 0
-                        time_calculado = (fecha_hora_salida - fecha_hora_final_plena)/60
-                        tiempo = str(time_calculado).split(":")
-                        #print("split", tiempo)
-                        horas = (int(tiempo[1]))
-                        print(horas)
-                        cobro = format((horas * costo_hora) + monto_tarifa_plena,".2f")
-                    elif(vacia_tiempo_libre == True):
-                        #print("entra")
-                        hora_gratis = 0
-                        cobro = format(monto_tarifa_plena,".2f")
+                    #Horas Plenas
+                    horas_plenas = (fechaActualHoraFinPlena - fechaActualHoraIniPlena)/60
+                    hora_plena_total = str(horas_plenas).split(":")
+                    hora_plena = (int(hora_plena_total[1]))
                     
-            
+                    #Horas de Parkeo
+                    horas_totales = (fecha_hora_salida - fecha_hora_ingreso)/60
+                    tiempo_total = str(horas_totales).split(":")
+                    horas_cobro = (int(tiempo_total[1]))
+                    minutos_cobro = int(float(tiempo_total[2]))
+                    
+                    dif_dias_hr = abs((fecha_hora_salida - fecha_hora_ingreso).days)
+                    dias_pension = dif_dias_hr
+                    dif_dias_hr = dif_dias_hr * 24
+                    
+                    
+                    print('dif_dias_hr',dif_dias_hr)
+                    print('dias_pension',dias_pension)
+                    print('horas_totales',horas_totales)
+                    print('hora_plena',hora_plena)
+                    print('horas_cobro',horas_cobro)
+                    print('minutos_cobro',minutos_cobro)
+                    
+                    if((horas_cobro >= hora_plena and dif_dias_hr == 0) or (horas_cobro < hora_plena and dif_dias_hr == 0)):
+                        #Cobra una plena mas horas adicionales
+                        
+                        if(horas_cobro <= hora_gratis):
+                            print('Regla 2.1')
+                            horas_totales = (fecha_hora_salida - fecha_hora_ingreso)/60
+                            tiempo_total = str(horas_totales).split(":")
+                            horas_cobro = (int(tiempo_total[1]))
+                            minutos_cobro = int(float(tiempo_total[2]))
+                            
+                            #Si esta dentro de las horas gratis
+                            if(horas_cobro < hora_gratis):
+                                print("3.1")
+                                monto_total = '0.00'
+                            #Si supero las horas gratis
+                            elif(horas_cobro >= hora_gratis and minutos_cobro > 0): 
+                                print("3.2")
+                                if minutos_cobro > 0:
+                                    sum_hora = (60 - minutos_cobro)
+                                    plus_hora = (sum_hora + minutos_cobro) / 60 
+                                monto_total = format(((horas_cobro + plus_hora) - hora_gratis) * costo_hora,".2f")
+                                horas_cobro = horas_cobro + 1
+                            else:
+                                print("3.3")
+                                monto_total = format((horas_cobro - hora_gratis) * costo_hora,".2f")
+                        else:
+                            print('Regla 2.2')   
+                            hora_gratis = 0
+                            calculo_hrs_plena = 0
+                            if(horas_cobro > hora_plena):
+                                calculo_hrs_plena = float(str(horas_cobro - hora_plena)+"."+str(minutos_cobro)) * costo_hora
+                            calculo_plena = costo_tarifa_plena + calculo_hrs_plena
+                            print('calculo_hrs_plena',calculo_hrs_plena)
+                            print('calculo_plena',calculo_plena)
+                            monto_total = calculo_plena
+                        
+                    elif(dif_dias_hr >= 24):
+                        #Cobra Pension completa por dias
+                        print('Regla 2.3')
+                        calculo_pension = (costo_pension * dias_pension)
+                        calculo_hrs_pension = float(str(horas_cobro)+"."+str(minutos_cobro)) * costo_hora
+                        print('calculo_pension', calculo_pension)
+                        print('calculo_hrs_pension',calculo_hrs_pension)
+                        hora_gratis = 0
+                        hora_adicional = 0
+                        monto_total = calculo_pension + calculo_hrs_pension
+                        if(minutos_cobro >= 1):
+                            hora_adicional = 1
+                        horas_cobro = dif_dias_hr + horas_cobro + hora_adicional
+                        
+                else:
+                    print('Regla 3')
+                    horas_totales = (fecha_hora_salida - fecha_hora_ingreso)/60
+                    tiempo_total = str(horas_totales).split(":")
+                    horas_cobro = (int(tiempo_total[1]))
+                    minutos_cobro = int(float(tiempo_total[2]))
+                    
+                    #Si esta dentro de las horas gratis
+                    if(horas_cobro < hora_gratis):
+                        print("3.1")
+                        monto_total = '0.00'
+                    #Si supero las horas gratis
+                    elif(horas_cobro >= hora_gratis and minutos_cobro > 0): 
+                        print("3.2")
+                        if minutos_cobro > 0:
+                            sum_hora = (60 - minutos_cobro)
+                            plus_hora = (sum_hora + minutos_cobro) / 60 
+                        monto_total = format(((horas_cobro + plus_hora) - hora_gratis) * costo_hora,".2f")
+                        horas_cobro = horas_cobro + 1
+                    else:
+                        print("3.3")
+                        monto_total = format((horas_cobro - hora_gratis) * costo_hora,".2f")
+                    
+                    print('hrs',str(horas_cobro))
+                    print('min',str(minutos_cobro))
+                    print('monto',str(monto_total))
+                    
+                    #if(fecha_hora_salida > fechaActualHoraIniPlena and fecha_hora_salida < fechaActualHoraFinPlena):
+                     #   print('2.1.1')
+                
+           
+           
 
-                return Response({'FechaHoraIngreso': ingreso, 'FechaHoraSalida':fecha_hora_salida,  'DuracionHoraFrac':horas_totales, 'MontoPagar': cobro, 'HoraGratis': int(hora_gratis) })
+                return Response({'FechaHoraIngreso': fecha_hora_ingreso, 'FechaHoraSalida':fecha_hora_salida,  'DuracionHoraFrac':horas_cobro, 'MontoPagar': monto_total, 'HoraGratis': hora_gratis })
         except Exception as e:
             print(e)
             return(Response({'Message':'No Existe la Placa'}, status=status.HTTP_400_BAD_REQUEST))
