@@ -4,7 +4,7 @@ from .views import ApartamentoPhView, TorresApastamentosView, PlacasVheiculosVis
     IngresoSalidaVisitaVehiculoView, VisitanteDatosView, CalculoTiempoMontoView, TipoVehiculoView, ReporteParqueaderosDhView, \
     ReporteCarrosParqueadosDhView, ReporteParqueaderosLibresDhView, GetDateTimeView, ResumenVisitaVehiculoView, ReporteIngresosView, \
     ReporteRecaudoView, ConfigTipoPagoView, ConjuntoView, ImpresoraView, CustomAuthToken, CostoPensionView, \
-    PensionView, PensionReporteView, CajaView, CorteCajaView
+    PensionView, PensionReporteView, CajaView, CorteCajaView, LogView, TiketIdView
         
 
 urlpatterns = [
@@ -42,4 +42,6 @@ urlpatterns = [
     path('apertura-caja/', CajaView.as_view(), name='apertura-caja'),
     path('corte-caja/', CorteCajaView.as_view(), name='corte-caja'),
     path('cierre-caja/<int:pk>/', CajaView.as_view(), name='cierra-caja'),
+    path('log/', LogView.as_view(), name='log'),
+    path('ticketid/', TiketIdView.as_view(), name='ticketid'),
 ]

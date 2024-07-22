@@ -1,7 +1,7 @@
 from rest_framework import serializers
 from .models import ApartamentoPh, TorresPh, ApartamentosPh, PlacaVehiculoVisita, ParqueaderosVisita, \
     IngresoSalidaVehiculoVisita, VisitanteDatos, IngresoDeVisita, Config, TipoVehiculo, Facturacion, Config, \
-    Conjunto, Impresora, Pension, CostoPension, Caja
+    Conjunto, Impresora, Pension, CostoPension, Caja, Log, TicketId
     
 class TorresPhSerializer(serializers.ModelSerializer):
     class Meta:
@@ -36,7 +36,7 @@ class PlacaVehiculoVisitaSerializer(serializers.ModelSerializer):
 class IngresoVisitaSerializer(serializers.ModelSerializer):
     class Meta:
         model = IngresoSalidaVehiculoVisita
-        fields = ["vi_fecha_hora_ingreso", "pl_placa", "vh_tipo", "pk_slot"]
+        fields = ["vi_fecha_hora_ingreso", "pl_placa", "vh_tipo", "pk_slot", "in_tk_id"]
 
 class SalidaVisitaSerializer(serializers.ModelSerializer):
     class Meta:
@@ -91,7 +91,7 @@ class ImpresoraSerializer(serializers.ModelSerializer):
 class PensionSerializer(serializers.ModelSerializer):
     class Meta:
         model = Pension
-        fields = ["pe_id","pe_placa", "pe_nombre", "pe_cedula", "pe_fecha_ini", "pe_fecha_fin", "pe_monto", "pe_slot", "pe_tipo_vehiculo", "pe_status"]
+        fields = ["pe_id","pe_placa", "pe_nombre", "pe_cedula", "pe_fecha_ini", "pe_fecha_fin", "pe_monto", "pe_slot", "pe_tipo_vehiculo", "pe_status", "pe_tk_id"]
 
 class PensionStatusSerializer(serializers.ModelSerializer):
     class Meta:
@@ -127,3 +127,13 @@ class StatusPensionCajaSerializer(serializers.ModelSerializer):
     class Meta:
         model = Pension
         fields =["pe_status_caja"]
+        
+class LogSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = Log
+        fields = "__all__"
+
+class TicketIdSerializer(serializers.ModelSerializer):
+    class Meta:
+        model = TicketId
+        fields = ["tk_id"]

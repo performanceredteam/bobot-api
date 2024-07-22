@@ -10,7 +10,8 @@ from rest_framework.authtoken.models import Token
 
 from .models import ApartamentoPh, TorresPh, ApartamentosPh, PlacaVehiculoVisita, \
     ParqueaderosVisita, IngresoSalidaVehiculoVisita, VisitanteDatos, IngresoDeVisita, \
-    TipoVehiculo, Config, Facturacion, Conjunto, Impresora, Pension, CostoPension, Caja
+    TipoVehiculo, Config, Facturacion, Conjunto, Impresora, Pension, CostoPension, Caja, Log, \
+    TicketId
 
 from .serializer import ApartamentoPhSerializer, \
     TorresPhSerializer, ApartamentosCasasPhSerializer, \
@@ -19,7 +20,8 @@ from .serializer import ApartamentoPhSerializer, \
     VisitanteDatosSerializer, IngresoDeVisitaSerializer, SalidaDeVisitaSerializer, \
     TipoVehiculoSerializer, ConfigSerializer, FacturacionSerializer, IngresoDeVisitaReporteSerializer, \
     ConjuntoSerializer, ImpresoraSerializer, PensionSerializer, CostoPensionSerializer, PensionStatusSerializer, \
-    CajaSerializer, CajaAperturaSerializer, CajaCierreSerializer, StatusFacturacionCajaSerializer, StatusPensionCajaSerializer
+    CajaSerializer, CajaAperturaSerializer, CajaCierreSerializer, StatusFacturacionCajaSerializer, StatusPensionCajaSerializer, \
+    LogSerializer, TicketIdSerializer
 
 from rest_framework.permissions import DjangoModelPermissions
 from datetime import *
@@ -275,7 +277,8 @@ class IngresoSalidaVisitaVehiculoView(APIView):
                 'pl_placa': request.data.get('pl_placa'),
                 'vh_tipo': request.data.get('vh_tipo'),
                 'pk_slot' : request.data.get('pk_slot'),
-                'pk_status': request.data.get('pk_status')
+                'pk_status': request.data.get('pk_status'),
+                'in_tk_id' :request.data.get('in_tk_id')
             }
             
             serializer = IngresoVisitaSerializer(data=data)
@@ -1092,7 +1095,8 @@ class PensionView(APIView):
                 'pe_fecha_fin': request.data.get('pe_fecha_fin'),
                 'pe_monto': request.data.get('pe_monto'),
                 'pe_slot': request.data.get('pe_slot'),
-                'pe_tipo_vehiculo': request.data.get('pe_tipo_vehiculo')
+                'pe_tipo_vehiculo': request.data.get('pe_tipo_vehiculo'),
+                'pe_tk_id' :  request.data.get('pe_tk_id')
             }
             
             serializer = PensionSerializer(data=data)
@@ -1273,3 +1277,71 @@ class CorteCajaView(APIView):
             print(e)
         
         return Response({'Message' : 'Error', "Detail": serializer_pension.errors}, status=status.HTTP_400_BAD_REQUEST)  
+
+class LogView(APIView):
+    authentication_classes=[TokenAuthentication,]
+    permission_classes = [DjangoModelPermissions]
+    
+    queryset = Log.objects.all()[:1]
+    serializer = LogSerializer
+    
+    def post(self, request, *args, **kwargs):
+        try:
+            
+            response = requests.get("http://worldtimeapi.org/api/timezone/America/Bogota")
+            data_date = response.json()
+            
+            fecha = data_date['datetime'][0:10]
+            hora = data_date['datetime'][11:19]
+            lg_fecha = fecha+" "+hora
+          
+            data = {
+                'lg_usuario' : request.data.get('lg_usuario'),
+                'lg_log' : request.data.get('lg_log'),
+                'lg_fecha' : lg_fecha
+            }
+     
+            serializer_log = LogSerializer(data=data)
+            
+        except Exception as e:
+            print(e)
+            
+        if serializer_log.is_valid():
+            serializer_log.save()
+            return Response({'Message' : 'Success', 'Log' : serializer_log.data}, status=status.HTTP_201_CREATED)
+        
+        return Response({'Message' : 'Error', 'Detail': serializer_log.errors}, status=status.HTTP_400_BAD_REQUEST)
+
+class TiketIdView(APIView):
+    authentication_classes=[TokenAuthentication,]
+    permission_classes = [DjangoModelPermissions]
+    
+    queryset = TicketId.objects.all()[:1]
+    serializer = TicketIdSerializer
+    
+    def get(self, request, *args, **kwargs):
+        try:
+            ticketid_instance = TicketId.objects.last()
+            #pension_instance = Pension.objects.all().filter(pe_status=True)
+            serializer_ticketid = TicketIdSerializer(ticketid_instance, many=False)
+            #print(serializer_ticketid.data)
+        except Exception as e:
+            print(e)
+        
+        return Response({'TicketId':serializer_ticketid.data})
+
+    def post(self, request, *args, **kwargs):
+        try:
+            data = {
+                'tk_id' : request.data.get('tk_id')
+            }
+     
+            serializer_ticketid = TicketIdSerializer(data=data)
+        except Exception as e:
+            print(e)
+            
+        if serializer_ticketid.is_valid():
+            serializer_ticketid.save()
+            return Response({'Message' : 'Success', 'Ticket' : serializer_ticketid.data}, status=status.HTTP_201_CREATED)
+        
+        return Response({'Message' : 'Error', 'Detail': serializer_ticketid.errors}, status=status.HTTP_400_BAD_REQUEST)

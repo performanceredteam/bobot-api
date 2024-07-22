@@ -58,6 +58,7 @@ class IngresoSalidaVehiculoVisita(models.Model):
     pk_slot = models.ForeignKey(ParqueaderosVisita, on_delete=models.CASCADE)
     vh_tipo = models.ForeignKey(TipoVehiculo, on_delete=models.CASCADE)
     vi_status = models.BooleanField(default=True)
+    in_tk_id = models.BigIntegerField()
     
     def __str__(self):
         return str(self.pl_placa)
@@ -140,6 +141,7 @@ class Pension(models.Model):
     pe_tipo_vehiculo = models.ForeignKey(TipoVehiculo, on_delete=models.CASCADE)
     pe_status = models.BooleanField(default=True)
     pe_status_caja = models.BooleanField(default=True)
+    pe_tk_id = models.BigIntegerField()
 
     def __str__(self):
         return str(self.pe_placa)
@@ -164,3 +166,15 @@ class Caja(models.Model):
     
     def __str__(self):
         return self.cj_usuario
+#Log
+class Log(models.Model):
+    lg_usuario = models.CharField(max_length=50)
+    lg_fecha = models.DateTimeField(format('%Y-%m-%dT%H:%M:%s'), default=timezone.now)
+    lg_log = models.TextField()
+    
+#Ticket Id consecutivo
+class TicketId(models.Model):
+    tk_id = models.BigIntegerField()
+    
+    def __str__(self) :
+        return str(self.tk_id)
