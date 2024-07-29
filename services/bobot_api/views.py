@@ -47,7 +47,7 @@ class CustomAuthToken(ObtainAuthToken):
             'last': user.last_name
         })
 
-def SendEmail(asunto, mensaje, emails):
+def SendEmail(asunto, mensaje, emails, admin):
     #send_mail(subjet=asunto, menssage=mensaje, from_email=settings.EMAIL_HOST_USER, recipient_list=emails)
     template = settings.TEMPLATES[0]['DIRS']
     message = get_template(template[0]+"/email.html").render({'datos':mensaje})
@@ -58,6 +58,7 @@ def SendEmail(asunto, mensaje, emails):
         body=message,
         from_email=settings.EMAIL_HOST_USER,
         to=[emails], # settings.EMAIL_HOST_USER
+        cc=[admin],
     )
     mail.content_subtype = "html"
     return mail.send()
@@ -306,6 +307,9 @@ class IngresoSalidaVisitaVehiculoView(APIView):
             visitante = None
             serializer_visitante = None
             option = None
+            
+            instance_conjunto = Conjunto.objects.all()
+            serializer_conjunto = ConjuntoSerializer(instance_conjunto, many=True)
 
             if placa != None and status != None:
                 option = 1
@@ -367,9 +371,11 @@ class IngresoSalidaVisitaVehiculoView(APIView):
                 " Parqueadero: "+serializer_info.data['pk_slot']+" Vistante: "+serializer_visitante.data['vd_nombre']+" Cédula: "+str(serializer_visitante.data['vd_cedula'])+ \
                 " Teléfono: "+serializer_visitante.data['vd_telefono']+" Residente: "+serializer_prop.data['ph_propietario']+" Teléfono: "+serializer_prop.data['ph_telefono']+ \
                 " Torre: "+str(serializer_prop.data["ph_torre"])+" Apartamento/Casa: "+str(serializer_prop.data["ph_apartamento"])
-            print(mensaje)
+            print("regitro => ",mensaje)
             emails = serializer_prop.data["ph_mail"]
-            SendEmail(asunto,mensaje,emails)
+            admin = serializer_conjunto.data[0]["cj_mail"]
+            print("mail => ",emails,",",admin)
+            SendEmail(asunto,mensaje,emails,admin)
             
             return Response({'Message':'Success','InfoPlacaVisitante':serializer.data, 'InfoIngreso':serializer_info.data, 'VisitanteInfo':serializer_visitante.data, \
             'RegistroVisitante':serializer_ingresovisita.data, 'PropietarioVisitado':serializer_prop.data})
@@ -392,6 +398,8 @@ class IngresoSalidaVisitaVehiculoView(APIView):
                 'vi_status' : request.data.get('vi_status')
             }
         
+        instance_conjunto = Conjunto.objects.all()
+        serializer_conjunto = ConjuntoSerializer(instance_conjunto, many=True)
         
         intance = PlacaVehiculoVisita.objects.get(pl_placa__exact=data['pl_placa'])
         serializerinstance = PlacaVehiculoVisitaSerializer(intance)
@@ -432,7 +440,11 @@ class IngresoSalidaVisitaVehiculoView(APIView):
                 " Teléfono: "+serializer_visitante.data['vd_telefono']+"\r\n Residente: "+serializer_prop.data['ph_propietario']+" Teléfono: "+serializer_prop.data['ph_telefono']+"\r\n"+ \
                 " Torre: "+str(serializer_prop.data["ph_torre"])+" Apartamento/Casa: "+str(serializer_prop.data["ph_apartamento"])
             emails = serializer_prop.data["ph_mail"]
-            SendEmail(asunto,mensaje,emails)
+            admin = serializer_conjunto.data[0]["cj_mail"]
+            #emails.append(serializer_prop.data["ph_mail"])
+            #emails.append(serializer_conjunto.data[0]["cj_mail"])
+            print("mails => ", emails,",", admin)
+            SendEmail(asunto,mensaje,emails,admin)
             
             
             return Response({'Message' : 'Success', "Salida" :serializer.data, 'Parqueadero': serializerpk.data, 'InfoVisitante': serializervisita.data, 'Facturacion' : facturaserializer.data}, status=status.HTTP_200_OK)

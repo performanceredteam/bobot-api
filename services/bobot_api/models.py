@@ -116,6 +116,7 @@ class Conjunto(models.Model):
     cj_ciudad = models.CharField(max_length=50)
     cj_tel = models.CharField(max_length=12)
     cj_msn = models.CharField(max_length=200)
+    cj_mail = models.EmailField()
     
     def __str__(self):
         return self.cj_nombre
